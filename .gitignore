@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.last_lager_mtime
+planer_log.txt
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Lokale temporäre Dateien
+*.tmp

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Kuchenproduktion</title>
+<style>
+  :root {
+    --blau: #2E75B6; --blau-hell: #D6E4F0; --gruen: #375623;
+    --gruen-hell: #D9EAD3; --orange: #e67e22; --rot: #c0392b;
+    --bg: #f0f2f5; --card: #ffffff; --text: #1a1a2e; --grau: #888;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: var(--bg); color: var(--text); padding-bottom: 40px; }
+
+  /* Header */
+  .header { background: var(--blau); color: white; padding: 16px 20px 12px;
+            position: sticky; top: 0; z-index: 100;
+            display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .header .sub { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+  .settings-btn { background: rgba(255,255,255,0.2); border: none; color: white;
+                  border-radius: 50%; width: 36px; height: 36px; font-size: 18px;
+                  cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  /* Status bar */
+  .status-bar { padding: 10px 16px; font-size: 13px; font-weight: 600;
+                text-align: center; display: none; }
+  .status-bar.loading { background: #FFF3CD; color: #856404; display: block; }
+  .status-bar.success { background: #D4EDDA; color: #155724; display: block; }
+  .status-bar.error   { background: #F8D7DA; color: #721C24; display: block; }
+  .status-bar.info    { background: var(--blau-hell); color: var(--blau); display: block; }
+
+  /* Sections */
+  .section { margin: 12px 12px 0; }
+  .section-title { font-size: 11px; font-weight: 700; color: var(--grau);
+                   text-transform: uppercase; letter-spacing: 0.8px;
+                   padding: 0 4px; margin-bottom: 6px; }
+  .card { background: var(--card); border-radius: 14px;
+          box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow: hidden; }
+
+  /* Product rows */
+  .product-row { display: flex; align-items: center; padding: 14px 16px;
+                 border-bottom: 1px solid #f0f0f0; }
+  .product-row:last-child { border-bottom: none; }
+  .product-name { flex: 1; font-size: 15px; font-weight: 500; }
+  .product-unit { font-size: 12px; color: var(--grau); margin-right: 10px; }
+  .product-input { width: 72px; height: 42px; border: 2px solid #e0e0e0;
+                   border-radius: 10px; text-align: center; font-size: 20px;
+                   font-weight: 700; color: var(--text); background: #fafafa;
+                   -webkit-appearance: none; }
+  .product-input:focus { outline: none; border-color: var(--blau); background: white; }
+
+  /* Tartelette toggle */
+  .toggle-row { padding: 14px 16px; }
+  .toggle-label { font-size: 14px; font-weight: 500; margin-bottom: 10px; }
+  .toggle-group { display: flex; gap: 10px; }
+  .toggle-option { flex: 1; }
+  .toggle-option input[type="radio"] { display: none; }
+  .toggle-option label { display: block; text-align: center; padding: 12px 8px;
+                         border: 2px solid #e0e0e0; border-radius: 10px;
+                         font-size: 14px; font-weight: 600; cursor: pointer;
+                         color: var(--grau); transition: all 0.15s; }
+  .toggle-option input:checked + label { border-color: var(--blau);
+                                          background: var(--blau-hell); color: var(--blau); }
+
+  /* Save button */
+  .save-section { padding: 16px 12px 8px; }
+  .save-btn { width: 100%; height: 56px; background: var(--blau); color: white;
+              border: none; border-radius: 14px; font-size: 17px; font-weight: 700;
+              cursor: pointer; display: flex; align-items: center; justify-content: center;
+              gap: 8px; transition: opacity 0.15s; }
+  .save-btn:active { opacity: 0.85; }
+  .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .save-btn .spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.4);
+                       border-top-color: white; border-radius: 50%;
+                       animation: spin 0.7s linear infinite; display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Plans links */
+  .plans-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+                padding: 0 4px; }
+  .plan-link { display: block; text-align: center; padding: 12px 4px;
+               background: white; border-radius: 12px; text-decoration: none;
+               color: var(--blau); font-weight: 700; font-size: 14px;
+               box-shadow: 0 1px 4px rgba(0,0,0,.08); border: 2px solid transparent; }
+  .plan-link.today { border-color: var(--blau); background: var(--blau-hell); }
+  .plan-link .plan-day { font-size: 11px; color: var(--grau); font-weight: 500; margin-top: 2px; }
+
+  /* Settings modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+                   z-index: 200; display: none; align-items: flex-end; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; width: 100%; border-radius: 20px 20px 0 0;
+           padding: 24px 20px 40px; }
+  .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .modal label { display: block; font-size: 13px; font-weight: 600;
+                 color: var(--grau); margin-bottom: 4px; margin-top: 14px; }
+  .modal input { width: 100%; height: 46px; border: 2px solid #e0e0e0;
+                 border-radius: 10px; padding: 0 14px; font-size: 15px; }
+  .modal input:focus { outline: none; border-color: var(--blau); }
+  .modal-hint { font-size: 12px; color: var(--grau); margin-top: 6px; line-height: 1.5; }
+  .modal-save { width: 100%; height: 50px; background: var(--blau); color: white;
+                border: none; border-radius: 12px; font-size: 16px; font-weight: 700;
+                margin-top: 20px; cursor: pointer; }
+  .modal-close { position: absolute; top: 16px; right: 20px; background: none;
+                 border: none; font-size: 24px; cursor: pointer; color: var(--grau); }
+  .last-update { font-size: 12px; color: var(--grau); text-align: center;
+                 padding: 8px 0 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="h1">🧁 Kuchenproduktion</div>
+    <div class="sub">Lagerbestand aktualisieren</div>
+  </div>
+  <button class="settings-btn" onclick="openSettings()">⚙️</button>
+</div>
+
+<div class="status-bar" id="statusBar"></div>
+
+<!-- Tagesplaene -->
+<div class="section" style="margin-top:14px">
+  <div class="section-title">Tagespläne</div>
+  <div class="plans-grid" id="plansGrid"></div>
+</div>
+
+<!-- Lagerbestand -->
+<div class="section" style="margin-top:14px">
+  <div class="section-title">Lagerbestand eingeben</div>
+  <div class="card">
+    <div class="product-row">
+      <div class="product-name">Beeren Tartelette</div>
+      <div class="product-unit">Stk</div>
+      <input class="product-input" type="number" id="Beeren Tartelette" min="0" inputmode="numeric">
+    </div>
+    <div class="product-row">
+      <div class="product-name">Mango-Passionsfrucht Tartelette</div>
+      <div class="product-unit">Stk</div>
+      <input class="product-input" type="number" id="Mango-Passionsfrucht Tartelette" min="0" inputmode="numeric">
+    </div>
+    <div class="product-row">
+      <div class="product-name">Pistazien Törtchen</div>
+      <div class="product-unit">Stk</div>
+      <input class="product-input" type="number" id="Pistazien Toertchen" min="0" inputmode="numeric">
+    </div>
+    <div class="product-row">
+      <div class="product-name">Bienenstich</div>
+      <div class="product-unit">Stk</div>
+      <input class="product-input" type="number" id="Bienenstich" min="0" inputmode="numeric">
+    </div>
+    <div class="product-row">
+      <div class="product-name">Donauwelle</div>
+      <div class="product-unit">Stk</div>
+      <input class="product-input" type="number" id="Donauwelle" min="0" inputmode="numeric">
+    </div>
+    <div class="product-row">
+      <div class="product-name">Käsekuchen</div>
+      <div class="product-unit">Stk</div>
+      <input class="product-input" type="number" id="Kaesekuchen" min="0" inputmode="numeric">
+    </div>
+    <div class="product-row">
+      <div class="product-name">Käse-Rhabarber Schnitte</div>
+      <div class="product-unit">Stk</div>
+      <input class="product-input" type="number" id="Kaese-Rhabarber Schnitte" min="0" inputmode="numeric">
+    </div>
+    <div class="product-row">
+      <div class="product-name">Lauch-Speck Quiche</div>
+      <div class="product-unit">Stk</div>
+      <input class="product-input" type="number" id="Lauch-Speck Quiche" min="0" inputmode="numeric">
+    </div>
+
+    <!-- Tartelette-Auswahl -->
+    <div class="toggle-row" style="border-top: 1px solid #f0f0f0">
+      <div class="toggle-label">Nächste Tartelette produzieren:</div>
+      <div class="toggle-group">
+        <div class="toggle-option">
+          <input type="radio" name="tart" id="tart_beeren" value="Beeren Tartelette" checked>
+          <label for="tart_beeren">🫐 Beeren</label>
+        </div>
+        <div class="toggle-option">
+          <input type="radio" name="tart" id="tart_mango" value="Mango-Passionsfrucht Tartelette">
+          <label for="tart_mango">🥭 Mango</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="last-update" id="lastUpdate"></div>
+</div>
+
+<!-- Speichern -->
+<div class="save-section">
+  <button class="save-btn" id="saveBtn" onclick="speichern()">
+    <div class="spinner" id="spinner"></div>
+    <span id="saveBtnText">💾 Speichern & Plan erstellen</span>
+  </button>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeSettingsOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeSettings()">✕</button>
+    <h2>⚙️ GitHub Einstellungen</h2>
+    <label>GitHub Benutzername</label>
+    <input type="text" id="cfg_owner" placeholder="dein-github-name" autocomplete="off">
+    <label>Repository Name</label>
+    <input type="text" id="cfg_repo" placeholder="kuchenproduktion" autocomplete="off">
+    <label>Personal Access Token</label>
+    <input type="password" id="cfg_token" placeholder="ghp_...">
+    <div class="modal-hint">
+      Token erstellen: GitHub → Settings → Developer settings →
+      Personal access tokens → Fine-grained tokens → Repository: Contents (Read & Write).
+      Wird nur auf diesem Gerät gespeichert.
+    </div>
+    <button class="modal-save" onclick="saveSettings()">Speichern</button>
+  </div>
+</div>
+
+<script>
+// ── Konfiguration ────────────────────────────────────────────
+const PRODUKTE = [
+  "Beeren Tartelette", "Mango-Passionsfrucht Tartelette", "Pistazien Toertchen",
+  "Bienenstich", "Donauwelle", "Kaesekuchen",
+  "Kaese-Rhabarber Schnitte", "Lauch-Speck Quiche"
+];
+const TAGE = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
+const TAGE_KURZ = ["Mo","Di","Mi","Do","Fr"];
+
+function cfg(key) { return localStorage.getItem('kp_' + key) || ''; }
+function getApiBase() {
+  return `https://api.github.com/repos/${cfg('owner')}/${cfg('repo')}`;
+}
+function getPagesBase() {
+  return `https://${cfg('owner')}.github.io/${cfg('repo')}`;
+}
+
+// ── Tagespläne rendern ───────────────────────────────────────
+function renderPlans() {
+  const today = new Date().getDay(); // 0=So,1=Mo,...,5=Fr
+  const tagMap = {1:0,2:1,3:2,4:3,5:4}; // Wochentag → Index
+  const grid = document.getElementById('plansGrid');
+  const base = getPagesBase();
+  grid.innerHTML = TAGE.map((tag, i) => {
+    const isToday = tagMap[today] === i;
+    return `<a class="plan-link ${isToday ? 'today' : ''}"
+               href="${base}/Wochenplan/${tag}.html" target="_blank">
+              ${TAGE_KURZ[i]}
+              <div class="plan-day">${tag.slice(0,2)}</div>
+            </a>`;
+  }).join('');
+}
+
+// ── Aktuellen Lagerbestand laden ─────────────────────────────
+async function ladeLager() {
+  if (!cfg('owner') || !cfg('repo') || !cfg('token')) {
+    setStatus('info', '⚙️ Bitte zuerst GitHub-Einstellungen konfigurieren (Zahnrad oben rechts)');
+    return;
+  }
+  setStatus('loading', 'Lade aktuellen Lagerbestand...');
+  try {
+    const r = await fetch(`${getApiBase()}/contents/lagerbestand.json`, {
+      headers: { Authorization: `Bearer ${cfg('token')}`, Accept: 'application/vnd.github+json' }
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    const lager = JSON.parse(atob(data.content.replace(/\n/g, '')));
+
+    PRODUKTE.forEach(key => {
+      const el = document.getElementById(key);
+      if (el) el.value = lager[key] ?? 0;
+    });
+
+    // Tartelette-Auswahl
+    const nt = lager['naechste_tartelette'] || '';
+    if (nt.includes('Mango')) document.getElementById('tart_mango').checked = true;
+    else document.getElementById('tart_beeren').checked = true;
+
+    // Zeitstempel
+    const ts = data.encoding ? '' : '';
+    const commitUrl = `${getApiBase()}/commits?path=lagerbestand.json&per_page=1`;
+    fetch(commitUrl, {
+      headers: { Authorization: `Bearer ${cfg('token')}`, Accept: 'application/vnd.github+json' }
+    }).then(r => r.json()).then(commits => {
+      if (commits[0]) {
+        const d = new Date(commits[0].commit.committer.date);
+        document.getElementById('lastUpdate').textContent =
+          'Zuletzt aktualisiert: ' + d.toLocaleString('de-DE');
+      }
+    }).catch(() => {});
+
+    setStatus('', '');
+  } catch(e) {
+    setStatus('error', '⚠️ Fehler beim Laden: ' + e.message);
+  }
+}
+
+// ── Speichern ────────────────────────────────────────────────
+async function speichern() {
+  if (!cfg('owner') || !cfg('repo') || !cfg('token')) {
+    openSettings(); return;
+  }
+  const btn = document.getElementById('saveBtn');
+  const spinner = document.getElementById('spinner');
+  const btnText = document.getElementById('saveBtnText');
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  btnText.textContent = 'Wird gespeichert...';
+  setStatus('loading', '⏳ Speichere Lagerbestand...');
+
+  try {
+    // 1. Aktuellen SHA holen
+    const getR = await fetch(`${getApiBase()}/contents/lagerbestand.json`, {
+      headers: { Authorization: `Bearer ${cfg('token')}`, Accept: 'application/vnd.github+json' }
+    });
+    if (!getR.ok) throw new Error('Verbindungsfehler (HTTP ' + getR.status + ')');
+    const current = await getR.json();
+
+    // 2. Neue Werte zusammenstellen
+    const lager = {};
+    PRODUKTE.forEach(key => {
+      const el = document.getElementById(key);
+      lager[key] = el ? parseInt(el.value) || 0 : 0;
+    });
+    const tart = document.querySelector('input[name="tart"]:checked');
+    lager['naechste_tartelette'] = tart ? tart.value : 'Beeren Tartelette';
+
+    // 3. Pushen
+    const content = btoa(unescape(encodeURIComponent(
+      JSON.stringify(lager, null, 2) + '\n'
+    )));
+    const putR = await fetch(`${getApiBase()}/contents/lagerbestand.json`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${cfg('token')}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: 'Lagerbestand ' + new Date().toLocaleString('de-DE'),
+        content: content,
+        sha: current.sha
+      })
+    });
+    if (!putR.ok) {
+      const err = await putR.json();
+      throw new Error(err.message || 'Fehler beim Speichern');
+    }
+
+    setStatus('success', '✅ Gespeichert! Plan wird in ~2 Minuten aktualisiert.');
+    document.getElementById('lastUpdate').textContent =
+      'Zuletzt aktualisiert: ' + new Date().toLocaleString('de-DE');
+
+    // Nach 3 Min automatisch Seite neu laden (Plan ist dann fertig)
+    setTimeout(() => { setStatus('info', '🔄 Plan sollte fertig sein — Pläne oben öffnen!'); }, 120000);
+
+  } catch(e) {
+    setStatus('error', '⚠️ Fehler: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    btnText.textContent = '💾 Speichern & Plan erstellen';
+  }
+}
+
+// ── Status ───────────────────────────────────────────────────
+function setStatus(type, msg) {
+  const bar = document.getElementById('statusBar');
+  bar.className = 'status-bar' + (type ? ' ' + type : '');
+  bar.textContent = msg;
+}
+
+// ── Settings ─────────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('cfg_owner').value = cfg('owner');
+  document.getElementById('cfg_repo').value  = cfg('repo');
+  document.getElementById('cfg_token').value = cfg('token');
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeSettings() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+function closeSettingsOutside(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeSettings();
+}
+function saveSettings() {
+  localStorage.setItem('kp_owner', document.getElementById('cfg_owner').value.trim());
+  localStorage.setItem('kp_repo',  document.getElementById('cfg_repo').value.trim());
+  localStorage.setItem('kp_token', document.getElementById('cfg_token').value.trim());
+  closeSettings();
+  renderPlans();
+  ladeLager();
+}
+
+// ── Init ─────────────────────────────────────────────────────
+renderPlans();
+ladeLager();
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+name: Wochenplan erstellen
+
+on:
+  push:
+    paths:
+      - 'lagerbestand.json'
+      - 'Verkaufszahlen1.xlsx'
+
+permissions:
+  contents: write
+
+jobs:
+  planung:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Abhaengigkeiten installieren
+        run: pip install openpyxl
+
+      - name: Wochenplan erstellen
+        run: python3 System/planner.py
+
+      - name: Ergebnisse committen und pushen
+        run: |
+          git config user.name "Kuchenplaner"
+          git config user.email "planer@kuchenproduktion.local"
+          git add Wochenplan/
+          git diff --staged --quiet || \
+            git commit -m "Wochenplan $(date '+%d.%m.%Y %H:%M')" && git push
