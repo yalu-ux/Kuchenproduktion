@@ -1,10 +1,13 @@
 name: Wochenplan erstellen
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'lagerbestand.json'
       - 'Verkaufszahlen1.xlsx'
+      - 'System/planner.py'
+      - 'Kalkulation/Preise.xlsx'
 
 permissions:
   contents: write
