@@ -83,6 +83,12 @@ SUB_REZEPT_MAPPING = {
 }
 
 # Sub-Rezept Dateien
+# Fallback-Chargengrenzen fuer Sub-Rezepte deren Datei nicht lesbar ist
+# Werte werden nur verwendet wenn die Datei keinen lesbaren "Maximal"-Eintrag hat
+SUB_REZEPT_MAX_FALLBACK = {
+    "Amerikanische Käsemasse": {"max_charge_gramm": 5000},
+}
+
 SUB_REZEPT_DATEIEN = {
     "Salzmasse":                "Salzmasse.xlsx",
     "Dinkelhefeteig":           "Dinkelhefeteig.xlsx",
@@ -342,20 +348,25 @@ def lade_alle_rezepte():
     return rezepte
 
 def parse_sub_rezept(pfad):
-    """Parst eine einfache Sub-Rezept-Datei (Zutatenliste + Yield)."""
+    """Parst eine einfache Sub-Rezept-Datei (Zutatenliste + Yield).
+    Liest auch max_charge_num (Anzahl Grundrezepte) und max_charge_gramm (g-Limit).
+    """
     zeilen = _lade_rezept_zeilen(pfad)
     name_val = Path(pfad).stem
     for b, c in zeilen:
         if b: name_val = b; break
 
-    skip = ['maximal', 'herstellung', 'haltbarkeit', 'hinweis', 'zeitaufwand']
-    zutaten = []; yield_gramm = 0.0; in_block = False
+    # Nicht-Zutaten-Zeilen die uebersprungen werden (kein break mehr)
+    SKIP = ['herstellung', 'haltbarkeit', 'hinweis', 'zubereitung', 'vorbereitung']
+    zutaten = []; yield_gramm = 0.0
     aktiv_min = passiv_min = 0; yield_info = None
+    max_charge_num = 99; max_charge_gramm = None
+    _lese_max_naechste = False  # True = naechste nicht-leere Zeile ist der Max-Wert
 
     for b, c in zeilen:
         if not b: continue
         bl = b.lower()
-        # Zeitaufwand
+        # Zeitaufwand (immer zuerst pruefen, egal wo im Dokument)
         if 'zeitaufwand aktiv' in bl:
             m = re.search(r'(\d+)', c)
             if m: aktiv_min = int(m.group(1)); continue
@@ -366,20 +377,36 @@ def parse_sub_rezept(pfad):
         if 'böden' in bl or 'boden' in bl:
             m = re.search(r'(\d+)\s*[Bb][öo]den', b)
             if m: yield_info = int(m.group(1))
-        # Abbruch bei Skip-Schlüsselwörtern
-        if any(w in bl for w in skip): break
-        # Zutaten-Block
-        if bl in ('zutat', 'rezept:', 'rezept', 'rezept :'): in_block = True; continue
+        # Maximale Charge: naechste nicht-leere Zeile nach "Maximal..."-Label lesen
+        if _lese_max_naechste:
+            _lese_max_naechste = False
+            m_x = re.match(r'(\d+)\s*x', bl)   # "1x Grundrezept"
+            if m_x: max_charge_num = int(m_x.group(1))
+            m_kg = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:kg|kilo(?:gramm)?)\b', bl)
+            if not m_kg:
+                m_kg = re.search(r'ca\.?\s*(\d+(?:[.,]\d+)?)\s*(?:kg|kilo(?:gramm)?)\b', bl)
+            if m_kg: max_charge_gramm = round(float(m_kg.group(1).replace(',', '.')) * 1000)
+            elif re.search(r'(\d+)\s*g\b', bl):
+                m_g = re.search(r'(\d+)\s*g\b', bl)
+                if m_g: max_charge_gramm = int(m_g.group(1))
+            continue
+        if 'maximal' in bl:
+            _lese_max_naechste = True; continue
+        # Nicht-Zutaten-Zeilen ueberspringen (kein break - Zeitaufwand steht oft am Ende)
+        if any(w in bl for w in SKIP): continue
+        # Zutaten-Header
+        if bl in ('zutat', 'rezept:', 'rezept', 'rezept :'): continue
+        # Zutat parsen
         if c:
             try:
                 menge = float(c.replace(',', '.'))
                 zutaten.append({'zutat': b, 'menge': menge, 'einheit': 'g'})
                 yield_gramm += menge
-                in_block = True
             except: pass
 
     return {'name': str(name_val), 'zutaten': zutaten, 'yield_gramm': yield_gramm,
-            'yield_info': yield_info, 'aktiv_min': aktiv_min, 'passiv_min': passiv_min}
+            'yield_info': yield_info, 'aktiv_min': aktiv_min, 'passiv_min': passiv_min,
+            'max_charge_num': max_charge_num, 'max_charge_gramm': max_charge_gramm}
 
 def lade_sub_rezepte():
     """Laedt alle Sub-Rezept-Dateien."""
@@ -389,7 +416,14 @@ def lade_sub_rezepte():
         pfad = REZEPTE_PFAD / datei
         if not pfad.exists(): continue
         r = parse_sub_rezept(pfad)
-        if r: sub[key] = r
+        if r:
+            # Fallback-Werte anwenden wenn Datei keinen Maximal-Eintrag hat
+            fb = SUB_REZEPT_MAX_FALLBACK.get(key, {})
+            if fb.get("max_charge_gramm") and not r.get("max_charge_gramm"):
+                r["max_charge_gramm"] = fb["max_charge_gramm"]
+            if fb.get("max_charge_num") and r.get("max_charge_num", 99) == 99:
+                r["max_charge_num"] = fb["max_charge_num"]
+            sub[key] = r
     return sub
 
 def _find_sub_recipes(zutaten, sub_rezepte, scale_factor, is_per_piece, batch_size, already):
@@ -445,23 +479,50 @@ def berechne_zeitaufwand(produkt_key, rezepte, sub_rezepte, menge):
     return aktiv, passiv
 
 def format_sub_rezept_html(key, srz, n_mal):
-    """Erstellt HTML-Block fuer ein einzelnes Sub-Rezept."""
-    if n_mal <= 1:
-        title = 'Sub-Rezept: {} &mdash; 1x Grundrezept ({:.0f}g)'.format(srz['name'], srz['yield_gramm'])
+    """Erstellt HTML-Block fuer ein einzelnes Sub-Rezept.
+    Beruecksichtigt max_charge_num und max_charge_gramm aus dem Rezept.
+    """
+    yield_g   = srz.get('yield_gramm', 0) or 1
+    max_num   = srz.get('max_charge_num', 99)   # Max Grundrezepte gleichzeitig
+    max_gram  = srz.get('max_charge_gramm')      # Max Gramm gleichzeitig (oder None)
+    total_g   = yield_g * n_mal
+
+    # Physikalische Chargen berechnen
+    if max_gram and max_gram > 0:
+        n_phys  = math.ceil(total_g / max_gram)
+        g_je    = total_g / n_phys
+    elif max_num < 99:
+        n_phys  = math.ceil(n_mal / max_num)
+        g_je    = yield_g * min(n_mal, max_num)
     else:
+        n_phys  = 1
+        g_je    = total_g
+
+    # Titel
+    if n_phys > 1:
+        title = ('Sub-Rezept: {} &mdash; {:.0f}g gesamt &rarr; '
+                 '<b>{}x Charge à je {:.0f}g</b>').format(
+                     srz['name'], total_g, n_phys, g_je)
+    elif n_mal > 1:
         title = 'Sub-Rezept: {} &mdash; {}x Grundrezept ({:.0f}g gesamt)'.format(
-            srz['name'], n_mal, srz['yield_gramm'] * n_mal)
+            srz['name'], n_mal, total_g)
+    else:
+        title = 'Sub-Rezept: {} &mdash; 1x Grundrezept ({:.0f}g)'.format(srz['name'], yield_g)
+
+    # Zutaten: immer pro Charge anzeigen (nicht gesamt)
+    skala = g_je / yield_g if yield_g > 0 else 1
     zhtml = ''.join(
         '<li><span class="zutat">{}</span><span class="menge">{:.0f}g</span></li>'.format(
-            z['zutat'], z['menge'] * n_mal)
+            z['zutat'], z['menge'] * skala)
         for z in srz['zutaten']
     )
+    suffix = ' <span style="color:#e67e22;font-size:11px">(je Charge)</span>' if n_phys > 1 else ''
     return (
         '<div class="sub-recipe">'
-        '<div class="sub-recipe-title">{}</div>'
+        '<div class="sub-recipe-title">{}{}</div>'
         '<ul class="zutaten">{}</ul>'
         '</div>'
-    ).format(title, zhtml)
+    ).format(title, suffix, zhtml)
 
 def format_alle_sub_rezepte_html(rezept, batch_size, sub_rezepte, skip_keys=None):
     """Zeigt alle Sub-Rezepte die für ein Produkt benötigt werden.
@@ -891,8 +952,14 @@ def erstelle_wochenplan(bedarf, murt, rezepte=None, sub_rezepte=None, verbleiben
             prio=PRIO["KK"],produkt_key="Kaesekuchen",aktiv_min=kk_a,passiv_min=kk_p)
         rem_kk-=ch; cn+=1
         if rem_kk<=0: break
-    n_tage_kk = math.ceil(rem_kk / kk_per_day) if rem_kk > 0 else 0
-    tage_kk = verteile_produktionstage(n_tage_kk, _filter(["Dienstag","Mittwoch","Donnerstag","Freitag"]))
+    if rem_kk > 0:
+        _kk_rest = dict(bedarf["Kaesekuchen"])
+        _kk_rest["zu_produzieren"] = rem_kk
+        _kk_rest["im_lager"] = bedarf["Kaesekuchen"]["im_lager"] + kk_montag
+        tage_kk = verteile_bestandssicher("Kaesekuchen", {"Kaesekuchen": _kk_rest}, aktiv_plan,
+                                          _filter(["Dienstag","Mittwoch","Donnerstag","Freitag"]), kk_max)
+    else:
+        tage_kk = []
     for tag in tage_kk:
         if rem_kk<=0: break
         heute=0
@@ -920,10 +987,21 @@ def erstelle_wochenplan(bedarf, murt, rezepte=None, sub_rezepte=None, verbleiben
         streusel_gesamt   = kr_streusel * streusel_pro_stk
         streusel_gr       = math.ceil(streusel_gesamt / streusel_yield_gr)
         streusel_srz = sub_rezepte.get("Streusel",{})
-        streusel_aktiv = streusel_srz.get("aktiv_min", 10) * streusel_gr
-        if "Montag" in vtage: info("Montag","STREUSEL HERSTELLEN",
-             "{}x Grundrezept ({:.0f}g) - fuer die ganze Woche".format(streusel_gr, streusel_gesamt),
-             prio=PRIO["STREUSEL"], aktiv_min=streusel_aktiv)
+        streusel_max   = streusel_srz.get("max_charge_num", 99)
+        streusel_aktiv_1 = streusel_srz.get("aktiv_min", 10) or 10  # pro Grundrezept
+        if "Montag" in vtage:
+            if streusel_gr <= streusel_max:
+                info("Montag","STREUSEL HERSTELLEN",
+                     "{}x Grundrezept ({:.0f}g) - fuer die ganze Woche".format(
+                         streusel_gr, streusel_gesamt),
+                     prio=PRIO["STREUSEL"], aktiv_min=streusel_aktiv_1 * streusel_gr)
+            else:
+                # In Einzelchargen aufteilen (max_charge_num Grundrezepte gleichzeitig)
+                for _si in range(streusel_gr):
+                    info("Montag","STREUSEL Charge {}/{}".format(_si+1, streusel_gr),
+                         "1x Grundrezept ({:.0f}g) - Teil fuer die ganze Woche".format(
+                             streusel_yield_gr),
+                         prio=PRIO["STREUSEL"], aktiv_min=streusel_aktiv_1)
 
     # --- BIENENSTICH ---
     b_menge=bedarf.get("Bienenstich",{}).get("zu_produzieren",0)
@@ -946,7 +1024,8 @@ def erstelle_wochenplan(bedarf, murt, rezepte=None, sub_rezepte=None, verbleiben
     q_ges=math.ceil(q_menge/q_max) if q_menge else 0
     rem,c=q_menge,1
     q_a, q_p = berechne_zeitaufwand("Lauch-Speck Quiche", rezepte, sub_rezepte, q_max)
-    tage_q = verteile_produktionstage(q_ges, _filter(["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"]))
+    tage_q = verteile_bestandssicher("Lauch-Speck Quiche", bedarf, aktiv_plan,
+                                     _filter(["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"]), q_max)
     for tag in tage_q:
         if rem<=0: break
         ch=min(rem,q_max)
@@ -975,7 +1054,8 @@ def erstelle_wochenplan(bedarf, murt, rezepte=None, sub_rezepte=None, verbleiben
     kr_ges=math.ceil(kr_menge/kr_max) if kr_menge else 0
     rem,c=kr_menge,1
     kr_a, kr_p = berechne_zeitaufwand("Kaese-Rhabarber Schnitte", rezepte, sub_rezepte, kr_max)
-    tage_kr = verteile_produktionstage(kr_ges, _filter(["Dienstag","Mittwoch","Donnerstag","Freitag"]))
+    tage_kr = verteile_bestandssicher("Kaese-Rhabarber Schnitte", bedarf, aktiv_plan,
+                                     _filter(["Dienstag","Mittwoch","Donnerstag","Freitag"]), kr_max)
     for tag in tage_kr:
         if rem<=0: break
         ch=min(rem,kr_max)
@@ -1042,6 +1122,309 @@ def format_rezept_block_html(rezept, daily_qty):
         '<ul class="zutaten">{}</ul>'
         '</div>'
     ).format(titel,zutaten_html)
+
+# ============================================================
+# PREISE & EINKAUFSLISTE
+# ============================================================
+def lade_preise():
+    """Laedt Preise.xlsx (Kalkulation/Preise.xlsx).
+    Gibt dict {zutat_lower: {name, preis_kg, selbst_bestellen}} zurueck.
+    """
+    pfad = BASE / "Kalkulation" / "Preise.xlsx"
+    preise = {}
+    if not pfad.exists():
+        print("  Warnung: Preise.xlsx nicht gefunden ({})".format(pfad))
+        return preise
+    try:
+        wb = openpyxl.load_workbook(pfad, data_only=True)
+        ws = wb.active
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if not row or len(row) < 3:
+                continue
+            zutat = str(row[1] or '').strip()
+            if not zutat or zutat.lower() == 'zutat':
+                continue
+            try:
+                preis_kg = float(str(row[2] or '0').replace(',', '.'))
+            except Exception:
+                preis_kg = 0.0
+            # Spalte D = Selbst bestellen (default: Ja)
+            selbst_raw = str(row[3] or 'Ja').strip().lower() if len(row) > 3 else 'ja'
+            selbst = selbst_raw in ('ja', 'yes', 'j', 'true', '1')
+            preise[zutat.lower()] = {
+                'name':             zutat,
+                'preis_kg':         preis_kg,
+                'selbst_bestellen': selbst,
+            }
+    except Exception as e:
+        print("  Preise laden fehlgeschlagen: {}".format(e))
+    return preise
+
+
+def _preis_lookup(zutat, preise):
+    """Sucht Preis-Eintrag fuer eine Zutat (case-insensitive, partial match)."""
+    key = zutat.lower().strip()
+    if key in preise:
+        return preise[key]
+    for pk, pv in preise.items():
+        if key in pk or pk in key:
+            return pv
+    return None
+
+
+def berechne_zutaten(aufgaben, rezepte, sub_rezepte):
+    """Berechnet alle benoetigten Zutaten (in Gramm) fuer eine Liste von Aufgaben.
+
+    Unterstuetzt:
+    - Hauptprodukt-Aufgaben (produkt_key gesetzt, menge > 0): Rezept * Menge
+    - MUERBETEIG ANSETZEN: MURBETEIG_REZEPT * Anzahl Grundrezepte (aus notiz)
+    - STREUSEL-Aufgaben: Sub-Rezept Streusel * n_mal (aus notiz oder 1x pro Charge)
+    - Andere Sub-Rezept-Aufgaben: Namens-Matching gegen sub_rezepte
+
+    Gibt {zutat_name: gramm} zurueck.
+    """
+    zutaten = defaultdict(float)
+
+    for a in aufgaben:
+        if a.get('excel_only'):
+            continue
+        produkt = a.get('produkt', '')
+        menge   = a.get('menge', 0)
+        notiz   = a.get('notiz', '')
+        pk      = a.get('produkt_key')
+        prod_up = produkt.upper()
+
+        # ── Hauptprodukt-Rezept ──────────────────────────────────
+        if pk and pk in rezepte and menge > 0:
+            for sec in rezepte[pk].get('sections', []):
+                for z in sec.get('zutaten', []):
+                    if z['einheit'] == 'g':
+                        zutaten[z['zutat']] += z['menge'] * menge
+
+        # ── Muerbeteig Ansetzen ──────────────────────────────────
+        elif 'MUERBETEIG ANSETZEN' in prod_up:
+            m = re.search(r'(\d+)x', notiz)
+            n_mal = int(m.group(1)) if m else 1
+            for z, mg in MURBETEIG_REZEPT.items():
+                zutaten[z] += mg * n_mal
+
+        # ── Streusel ─────────────────────────────────────────────
+        elif 'STREUSEL' in prod_up:
+            srz = sub_rezepte.get('Streusel') or sub_rezepte.get('Streusel ')
+            if srz:
+                if 'CHARGE' in prod_up:
+                    n_mal = 1
+                else:
+                    m = re.search(r'(\d+)x', notiz)
+                    n_mal = int(m.group(1)) if m else 1
+                for z in srz.get('zutaten', []):
+                    if z['einheit'] == 'g':
+                        zutaten[z['zutat']] += z['menge'] * n_mal
+
+        # ── Andere Sub-Rezepte per Namens-Match ──────────────────
+        elif not pk:
+            for srz_key, srz in sub_rezepte.items():
+                if srz_key.upper() in prod_up:
+                    m = re.search(r'(\d+)x', notiz)
+                    n_mal = int(m.group(1)) if m else 1
+                    for z in srz.get('zutaten', []):
+                        if z['einheit'] == 'g':
+                            zutaten[z['zutat']] += z['menge'] * n_mal
+                    break
+
+    return dict(zutaten)
+
+
+def erstelle_html_einkaufsliste(tag, zutaten, preise):
+    """Gibt HTML fuer die Tages-Einkaufsliste zurueck (einzubetten in Tagesplan)."""
+    if not zutaten:
+        return ''
+
+    rows = []
+    gesamt_kosten = 0.0
+    for zutat_name in sorted(zutaten.keys()):
+        gramm = zutaten[zutat_name]
+        if gramm <= 0:
+            continue
+        kg      = gramm / 1000.0
+        info    = _preis_lookup(zutat_name, preise)
+        preis_kg = info['preis_kg'] if info else 0.0
+        kosten   = kg * preis_kg
+        gesamt_kosten += kosten
+        kg_str     = '{:.2f} kg'.format(round(kg, 2)) if kg >= 0.1 else '{:.0f} g'.format(gramm)
+        kosten_str = '{:.2f} &euro;'.format(kosten) if kosten > 0 else '&ndash;'
+        rows.append(
+            '<tr><td class="z-name">{}</td>'
+            '<td class="z-menge">{}</td>'
+            '<td class="z-kosten">{}</td></tr>'.format(
+                zutat_name, kg_str, kosten_str
+            )
+        )
+
+    if not rows:
+        return ''
+
+    gesamt_str = '{:.2f} &euro;'.format(gesamt_kosten) if gesamt_kosten > 0 else ''
+    gesamt_row = (
+        '<tr class="ek-total">'
+        '<td colspan="2">Gesamtkosten</td>'
+        '<td class="z-kosten">{}</td></tr>'
+    ).format(gesamt_str) if gesamt_str else ''
+
+    return (
+        '<div class="ek-panel">'
+        '<div class="ek-title">&#128722; Einkaufsliste {}</div>'
+        '<table class="ek-table">'
+        '<thead><tr>'
+        '<th>Zutat</th><th>Menge</th><th>Kosten</th>'
+        '</tr></thead>'
+        '<tbody>{}</tbody>'
+        '<tfoot>{}</tfoot>'
+        '</table></div>'
+    ).format(tag, ''.join(rows), gesamt_row)
+
+
+def erstelle_html_bestellliste(bedarf, wplan, vtage, verkauf, lager,
+                                rezepte, sub_rezepte, preise, puffer_pct=20):
+    """Erstellt Wochenplan/Bestellliste.html.
+
+    Berechnung:
+    - Diese Woche: Summe aller Zutaten aus wplan (vtage)
+    - Naechste Woche Mo-Do: (diese Woche / Anzahl_Tage) * 4 * (1 + puffer/100)
+    - Gesamt = Summe beider Perioden
+    - Nur Zutaten mit selbst_bestellen=True werden angezeigt.
+    """
+    # ── Zutaten dieser Woche ─────────────────────────────────────
+    alle_aufgaben = []
+    for tag in vtage:
+        alle_aufgaben.extend(wplan.get(tag, []))
+    zutaten_woche = berechne_zutaten(alle_aufgaben, rezepte, sub_rezepte)
+
+    # ── Naechste Woche schätzen (Mo-Do = 4 Tage) ─────────────────
+    n_tage = max(len(vtage), 1)
+    faktor = (4.0 / n_tage) * (1.0 + puffer_pct / 100.0)
+    zutaten_naechste = {z: g * faktor for z, g in zutaten_woche.items()}
+
+    # ── Gesamt ───────────────────────────────────────────────────
+    gesamt_d = defaultdict(float)
+    for z, g in zutaten_woche.items():
+        gesamt_d[z] += g
+    for z, g in zutaten_naechste.items():
+        gesamt_d[z] += g
+
+    # ── Nur "Selbst bestellen"-Positionen ────────────────────────
+    bestell_items = []
+    for zutat_name in sorted(gesamt_d.keys()):
+        gramm_ges = gesamt_d[zutat_name]
+        if gramm_ges <= 0:
+            continue
+        info = _preis_lookup(zutat_name, preise)
+        if not info:
+            continue          # Zutat nicht in Preisliste → ignorieren
+        if not info['selbst_bestellen']:
+            continue          # Logistiker bestellt
+        bestell_items.append({
+            'name':      info['name'],
+            'g_woche':   zutaten_woche.get(zutat_name, 0),
+            'g_naechste': zutaten_naechste.get(zutat_name, 0),
+            'g_gesamt':  gramm_ges,
+            'preis_kg':  info['preis_kg'],
+            'kosten':    (gramm_ges / 1000.0) * info['preis_kg'],
+        })
+
+    # ── HTML ─────────────────────────────────────────────────────
+    rows_html = ''
+    gesamt_kosten = 0.0
+    for item in bestell_items:
+        def _kg(g):
+            return '{:.2f} kg'.format(round(g / 1000.0, 2))
+        rows_html += (
+            '<tr>'
+            '<td class="bl-name">{name}</td>'
+            '<td class="bl-num">{dw}</td>'
+            '<td class="bl-num">{nw}</td>'
+            '<td class="bl-num bl-bold">{g}</td>'
+            '<td class="bl-num">{p:.2f} &euro;/kg</td>'
+            '<td class="bl-num">{k:.2f} &euro;</td>'
+            '</tr>'
+        ).format(
+            name=item['name'],
+            dw=_kg(item['g_woche']),
+            nw=_kg(item['g_naechste']),
+            g=_kg(item['g_gesamt']),
+            p=item['preis_kg'],
+            k=item['kosten'],
+        )
+        gesamt_kosten += item['kosten']
+
+    if not rows_html:
+        rows_html = '<tr><td colspan="6" style="text-align:center;color:#888">Keine Bestellpositionen gefunden</td></tr>'
+
+    kw      = datetime.now().isocalendar()[1]
+    kw_next = kw + 1
+    datum   = datetime.now().strftime('%d.%m.%Y')
+
+    css = (
+        'body{font-family:sans-serif;padding:16px;max-width:960px;margin:0 auto;background:#f8f9fa}'
+        'h1{color:#2E75B6;font-size:1.4em;margin-bottom:4px}'
+        '.info{background:#e8f0fe;border-radius:8px;padding:10px 14px;margin-bottom:16px;'
+        '      font-size:.88em;color:#1a3a6b;line-height:1.5}'
+        'table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;'
+        '      overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.1);font-size:.9em}'
+        'th{background:#2E75B6;color:#fff;padding:9px 8px;text-align:left}'
+        'th.bl-num{text-align:right}'
+        'td{padding:7px 8px;border-bottom:1px solid #eee}'
+        'td.bl-num{text-align:right}'
+        'td.bl-bold{font-weight:700}'
+        'tr:last-child td{border-bottom:none}'
+        'tr:hover td{background:#f0f7ff}'
+        '.total-row td{font-weight:700;background:#D6E4F0;border-top:2px solid #2E75B6}'
+        '.footer{text-align:center;color:#aaa;font-size:.78em;margin-top:20px}'
+    )
+
+    html = (
+        '<!DOCTYPE html>\n'
+        '<html lang="de"><head>'
+        '<meta charset="UTF-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1.0">'
+        '<title>Bestellliste KW {kw}</title>'
+        '<style>{css}</style></head><body>'
+        '<h1>&#128230; Bestellliste KW {kw}</h1>'
+        '<div class="info">'
+        '&#128197; Bestellung: Montag {datum} &nbsp;&bull;&nbsp; '
+        'Lieferung: Di&ndash;Do &nbsp;&bull;&nbsp; '
+        'Reicht bis: Do naechste Woche (KW {kw_next})<br>'
+        '&#128204; Nur Artikel mit <strong>Selbst bestellen</strong> '
+        '(Logistiker-Artikel sind ausgeblendet)<br>'
+        '&#128200; Naechste Woche: Hochrechnung aus dieser Woche ({puffer}% Puffer, Mo&ndash;Do = 4 Tage)'
+        '</div>'
+        '<table>'
+        '<thead><tr>'
+        '<th>Zutat</th>'
+        '<th class="bl-num">Diese Woche</th>'
+        '<th class="bl-num">Naechste Woche (Mo&ndash;Do)</th>'
+        '<th class="bl-num">Bestellen</th>'
+        '<th class="bl-num">Preis / kg</th>'
+        '<th class="bl-num">Kosten</th>'
+        '</tr></thead>'
+        '<tbody>{rows}</tbody>'
+        '<tfoot><tr class="total-row">'
+        '<td colspan="5">Gesamtkosten (Selbst bestellen)</td>'
+        '<td class="bl-num">{gesamt:.2f}&nbsp;&euro;</td>'
+        '</tr></tfoot>'
+        '</table>'
+        '<div class="footer">Kuchenproduktion &middot; KW {kw}</div>'
+        '</body></html>'
+    ).format(
+        kw=kw, kw_next=kw_next, datum=datum, puffer=puffer_pct,
+        css=css, rows=rows_html, gesamt=gesamt_kosten
+    )
+
+    pfad = OUTPUT_PFAD / 'Bestellliste.html'
+    pfad.write_text(html, encoding='utf-8')
+    print('Bestellliste: {}'.format(pfad.name))
+
+
 
 # ============================================================
 # OUTPUT EXCEL
@@ -1121,6 +1504,116 @@ def erstelle_excel(bedarf, murt, wplan):
     fname=OUTPUT_PFAD/"Wochenuebersicht_{}.xlsx".format(datetime.now().strftime("%Y%m%d"))
     wb.save(fname); print("Wochenuebersicht: {}".format(fname.name)); return fname
 
+
+def erstelle_html_wochenuebersicht(bedarf, murt, wplan, rolling, tages_info):
+    """Generiert Wochenplan/Wochenuebersicht.html fuer mobilen Zugriff."""
+    FARBEN = {
+        "Montag":    ("#E2EFDA","#375623"),
+        "Dienstag":  ("#DDEBF7","#2E75B6"),
+        "Mittwoch":  ("#FFF2CC","#7B6000"),
+        "Donnerstag":("#FCE4D6","#833C00"),
+        "Freitag":   ("#F2F2F2","#404040"),
+    }
+
+    def zeit_str(minuten):
+        if not minuten: return ""
+        h,m = divmod(int(minuten),60)
+        return "{}h{}min".format(h,m) if h else "{}min".format(m)
+
+    html = []
+    html.append('<!DOCTYPE html><html lang="de"><head>')
+    html.append('<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">')
+    html.append('<title>Wochenuebersicht</title>')
+    html.append('<style>')
+    html.append('*{box-sizing:border-box;margin:0;padding:0}')
+    html.append('body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f2f5;padding-bottom:32px}')
+    html.append('.header{background:#2E75B6;color:#fff;padding:14px 18px;position:sticky;top:0;z-index:10}')
+    html.append('.header h1{font-size:17px;font-weight:700}.header .sub{font-size:11px;opacity:.8;margin-top:2px}')
+    html.append('.day-card{margin:12px 12px 0;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.09)}')
+    html.append('.day-header{padding:11px 16px;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}')
+    html.append('.task-row{background:#fff;display:flex;align-items:flex-start;padding:11px 14px;border-top:1px solid #f0f0f0;gap:10px}')
+    html.append('.task-name{flex:1;font-size:14px;font-weight:500;line-height:1.3}')
+    html.append('.task-notiz{font-size:12px;color:#888;margin-top:2px}')
+    html.append('.task-zeit{font-size:11px;color:#2E75B6;margin-top:2px}')
+    html.append('.lager-panel{background:#fff;margin:12px 12px 0;border-radius:14px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.09)}')
+    html.append('.lager-title{font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}')
+    html.append('.lager-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px solid #f5f5f5}')
+    html.append('.lager-row:last-child{border-bottom:none}')
+    html.append('.lager-leer{color:#c0392b;font-weight:700}.lager-niedrig{color:#e67e22;font-weight:600}')
+    html.append('</style></head><body>')
+
+    html.append('<div class="header"><h1>&#128197; Wochenuebersicht</h1>')
+    html.append('<div class="sub">Stand: {}</div></div>'.format(datetime.now().strftime("%d.%m.%Y %H:%M")))
+
+    hat_inhalt = False
+    for tag in ARBEITSTAGE:
+        aufgaben = [a for a in wplan.get(tag, []) if not a.get("excel_only")]
+        if not aufgaben:
+            continue
+        hat_inhalt = True
+        bg, fg = FARBEN.get(tag, ("#eee","#333"))
+
+        gesamt_aktiv = sum(a.get("aktiv_min",0) or 0 for a in aufgaben)
+        gesamt_passiv = sum(a.get("passiv_min",0) or 0 for a in aufgaben)
+
+        html.append('<div class="day-card">')
+        html.append('<div class="day-header" style="background:{};color:{}">{}'.format(bg, fg, tag.upper()))
+        if gesamt_aktiv:
+            html.append(' &nbsp;<span style="font-weight:400;font-size:11px">&#9201; aktiv {} / passiv {}</span>'.format(
+                zeit_str(gesamt_aktiv), zeit_str(gesamt_passiv)))
+        html.append('</div>')
+
+        for a in aufgaben:
+            prod = a.get("produkt","")
+            menge = a.get("menge")
+            notiz = a.get("notiz","")
+            aktiv = a.get("aktiv_min",0)
+            passiv = a.get("passiv_min",0)
+            html.append('<div class="task-row"><div style="flex:1">')
+            if menge and int(menge) > 0:
+                html.append('<div class="task-name">{} &mdash; <span style="color:#555;font-size:13px">{} Stk</span></div>'.format(prod, int(menge)))
+            else:
+                html.append('<div class="task-name">{}</div>'.format(prod))
+            if notiz:
+                html.append('<div class="task-notiz">{}</div>'.format(notiz))
+            if aktiv:
+                html.append('<div class="task-zeit">&#9201; aktiv {} / passiv {}</div>'.format(
+                    zeit_str(aktiv), zeit_str(passiv)))
+            html.append('</div></div>')
+        html.append('</div>')
+
+        warnungen = tages_info.get(tag, [])
+        if warnungen:
+            html.append('<div class="lager-panel">')
+            html.append('<div class="lager-title">&#128230; Lagerstand nach {}</div>'.format(tag))
+            for w in warnungen:
+                cls = "lager-leer" if w["status"]=="leer" else "lager-niedrig"
+                icon = "&#128308;" if w["status"]=="leer" else "&#129473;"
+                html.append('<div class="lager-row"><span class="{}">{} {}</span><span>{:.1f} Stk</span></div>'.format(
+                    cls, icon, w["produkt"], w["bestand"]))
+            html.append('</div>')
+
+    if not hat_inhalt:
+        html.append('<p style="text-align:center;color:#aaa;font-size:14px;padding:40px 20px">Keine Aufgaben diese Woche.</p>')
+
+    html.append('<div class="lager-panel" style="margin-top:16px">')
+    html.append('<div class="lager-title">&#128203; Wochenbedarf</div>')
+    for key, bd in bedarf.items():
+        zu_prod = bd.get("zu_produzieren", 0)
+        im_lager = bd.get("im_lager", 0)
+        if zu_prod > 0:
+            html.append('<div class="lager-row"><span>{}</span><span style="color:#375623;font-weight:600">+{} Stk produzieren</span></div>'.format(key, zu_prod))
+        else:
+            html.append('<div class="lager-row"><span>{}</span><span style="color:#888">Lager reicht ({} Stk)</span></div>'.format(key, int(im_lager)))
+    html.append('</div>')
+
+    html.append('</body></html>')
+
+    fname = OUTPUT_PFAD / "Wochenuebersicht.html"
+    fname.write_text("\n".join(html), encoding="utf-8")
+    print("Wochenuebersicht HTML: {}".format(fname.name))
+    return fname
+
 # ============================================================
 # OUTPUT HTML
 # ============================================================
@@ -1150,6 +1643,14 @@ HTML_CSS = (
     ".zutaten li{display:flex;justify-content:space-between;padding:5px 0;"
     "border-bottom:1px solid #e8f4e8;font-size:14px}"
     ".zutaten li:last-child{border-bottom:none}"
+    ".ek-panel{background:#f0faf0;border:1px solid #b2dfdb;border-radius:8px;padding:12px 14px;margin-top:16px}"
+    ".ek-title{font-weight:700;color:#2e7d32;margin-bottom:8px;font-size:.95em}"
+    ".ek-table{width:100%;border-collapse:collapse;font-size:.87em}"
+    ".ek-table th{background:#43a047;color:#fff;padding:6px 8px;text-align:left}"
+    ".ek-table td{padding:5px 8px;border-bottom:1px solid #c8e6c9}"
+    ".ek-table tr:last-child td{border-bottom:none}"
+    ".z-menge,.z-kosten{text-align:right}"
+    ".ek-total td{font-weight:700;background:#c8e6c9}"
     ".zutat{color:#333}.menge{font-weight:600;color:#375623}"
     ".sub-recipe{background:#FFF8E1;border-radius:8px;padding:10px;margin-top:6px;border:1px solid #FFE082}"
     ".sub-recipe-title{font-weight:700;color:#7B5800;font-size:12px;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.3px}"
@@ -1164,7 +1665,7 @@ HTML_CSS = (
     ".lager-niedrig .lager-bestand{color:#e67e22;font-weight:600}"
 )
 
-def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=None, ist_heut=False):
+def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=None, ist_heut=False, preise=None):
     aufgaben_html = aufgaben  # bereits nach prio sortiert
     inhalt=""
 
@@ -1340,6 +1841,12 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
     if not inhalt:
         inhalt='<div class="task"><div class="task-header">Kein Produktionstag</div></div>'
 
+    # Einkaufsliste berechnen
+    einkauf_html = ""
+    if preise and rezepte:
+        _zt = berechne_zutaten(aufgaben_html, rezepte, sub_rezepte or {})
+        einkauf_html = erstelle_html_einkaufsliste(tag, _zt, preise)
+
     kw=datetime.now().isocalendar()[1]; datum=datetime.now().strftime("%d.%m.%Y")
     # Zeitbadge aufbauen
     zeitbadge=""
@@ -1370,9 +1877,10 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
         "{heute_banner}"
         "{zeitbadge}"
         "{inhalt}\n"
+        "{einkauf_html}\n"
         '<div class="footer">Kuchenproduktion &middot; KW {kw}</div>\n'
         "</body></html>"
-    ).format(tag=tag,kw=kw,datum=datum,inhalt=inhalt,css=HTML_CSS,zeitbadge=zeitbadge,heute_banner=heute_banner)
+    ).format(tag=tag,kw=kw,datum=datum,inhalt=inhalt,css=HTML_CSS,zeitbadge=zeitbadge,heute_banner=heute_banner,einkauf_html=einkauf_html)
 
     fname=OUTPUT_PFAD/"{}.html".format(tag)
     fname.write_text(html,encoding="utf-8")
@@ -1529,6 +2037,9 @@ def main():
     print("  {} Rezepte geladen: {}".format(len(rezepte),list(rezepte.keys())))
     sub_rezepte=lade_sub_rezepte()
     print("  {} Sub-Rezepte geladen: {}".format(len(sub_rezepte),list(sub_rezepte.keys())))
+    print("Lade Preise...")
+    preise=lade_preise()
+    print("  {} Preiseintraege geladen".format(len(preise)))
     print("Lese Verkaufszahlen...")
     verkauf=lese_verkaufszahlen()
     print("Lese Lagerbestand...")
@@ -1561,9 +2072,12 @@ def main():
         rolling, tages_info, engpaesse = berechne_rolling_inventory(bedarf, lager, wplan)
     print("\nErstelle Ausgabedateien...")
     erstelle_excel(bedarf,murt,wplan)
+    erstelle_html_wochenuebersicht(bedarf,murt,wplan,rolling,tages_info)
+    erstelle_html_bestellliste(bedarf,wplan,vtage,verkauf,lager,
+                               rezepte,sub_rezepte,preise)
     for tag in vtage:
         erstelle_html(tag,wplan.get(tag,[]),murt,rezepte,sub_rezepte,
-                      lager_info=tages_info.get(tag), ist_heut=ist_midweek)
+                      lager_info=tages_info.get(tag), ist_heut=ist_midweek, preise=preise)
     print("\n"+"="*40+"  WOCHENBEDARF:")
     for key,bd in bedarf.items():
         s="-> {} Stk".format(bd["zu_produzieren"]) if bd["zu_produzieren"]>0 else "-> Lager reicht"

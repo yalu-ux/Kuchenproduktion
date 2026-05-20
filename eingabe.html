@@ -252,7 +252,13 @@ function renderPlans() {
               ${TAGE_KURZ[i]}
               <div class="plan-day">${tag.slice(0,2)}</div>
             </a>`;
-  }).join('');
+  }).join('') + `<a class="plan-link" style="background:#2E75B6;color:#fff;flex:1 1 45%;justify-content:center;gap:6px"
+      href="${base}/Wochenplan/Wochenuebersicht.html" target="_blank">
+      📅 <span>Wochenübersicht</span>
+    </a>` + `<a class="plan-link" style="background:#1a6b3a;color:#fff;flex:1 1 45%;justify-content:center;gap:6px"
+      href="${base}/Wochenplan/Bestellliste.html" target="_blank">
+      🛒 <span>Bestellliste</span>
+    </a>`;
 }
 
 // ── Aktuellen Lagerbestand laden ─────────────────────────────
