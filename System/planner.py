@@ -1196,10 +1196,14 @@ def berechne_zutaten(aufgaben, rezepte, sub_rezepte):
 
         # ── Hauptprodukt-Rezept ──────────────────────────────────
         if pk and pk in rezepte and menge > 0:
+            # Rezeptzutaten sind pro Charge (nicht pro Stück) →
+            # skalieren mit Anzahl der Chargen, nicht mit Stückzahl
+            max_c = rezepte[pk].get('max_charge_num', 1) or 1
+            n_chargen = math.ceil(menge / max_c)
             for sec in rezepte[pk].get('sections', []):
                 for z in sec.get('zutaten', []):
                     if z['einheit'] == 'g':
-                        zutaten[z['zutat']] += z['menge'] * menge
+                        zutaten[z['zutat']] += z['menge'] * n_chargen
 
         # ── Muerbeteig Ansetzen ──────────────────────────────────
         elif 'MUERBETEIG ANSETZEN' in prod_up:
@@ -1312,24 +1316,31 @@ def erstelle_html_bestellliste(bedarf, wplan, vtage, verkauf, lager,
     for z, g in zutaten_naechste.items():
         gesamt_d[z] += g
 
-    # ── Nur "Selbst bestellen"-Positionen ────────────────────────
-    bestell_items = []
-    for zutat_name in sorted(gesamt_d.keys()):
-        gramm_ges = gesamt_d[zutat_name]
+    # ── Nur "Selbst bestellen"-Positionen, nach kanonischem Preis-Namen zusammenfassen ─
+    merged = {}   # canonical_name -> {g_woche, g_naechste, info}
+    for zutat_name, gramm_ges in gesamt_d.items():
         if gramm_ges <= 0:
             continue
         info = _preis_lookup(zutat_name, preise)
-        if not info:
-            continue          # Zutat nicht in Preisliste → ignorieren
-        if not info['selbst_bestellen']:
-            continue          # Logistiker bestellt
+        if not info or not info['selbst_bestellen']:
+            continue
+        canon = info['name']
+        if canon not in merged:
+            merged[canon] = {'g_woche': 0.0, 'g_naechste': 0.0, 'info': info}
+        merged[canon]['g_woche']    += zutaten_woche.get(zutat_name, 0)
+        merged[canon]['g_naechste'] += zutaten_naechste.get(zutat_name, 0)
+
+    bestell_items = []
+    for canon in sorted(merged.keys()):
+        m = merged[canon]
+        g_ges = m['g_woche'] + m['g_naechste']
         bestell_items.append({
-            'name':      info['name'],
-            'g_woche':   zutaten_woche.get(zutat_name, 0),
-            'g_naechste': zutaten_naechste.get(zutat_name, 0),
-            'g_gesamt':  gramm_ges,
-            'preis_kg':  info['preis_kg'],
-            'kosten':    (gramm_ges / 1000.0) * info['preis_kg'],
+            'name':       canon,
+            'g_woche':    m['g_woche'],
+            'g_naechste': m['g_naechste'],
+            'g_gesamt':   g_ges,
+            'preis_kg':   m['info']['preis_kg'],
+            'kosten':     (g_ges / 1000.0) * m['info']['preis_kg'],
         })
 
     # ── HTML ─────────────────────────────────────────────────────
