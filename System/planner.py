@@ -781,7 +781,11 @@ def berechne_wochenbedarf(verkauf, lager, cafe2_erledigt=False):
                      "zu_produzieren":prod,"cafe2_lieferung":cafe2_lief,"grund":grund}
     return bedarf
 
-def berechne_murbeteig(bedarf):
+def berechne_murbeteig(bedarf, lager=None):
+    """Berechnet Muerb­eteig-Bedarf fuer die Woche.
+    Zieht vorhandene Boeden und rohen Teig aus lager ab.
+    """
+    lager = lager or {}
     portionen={}; gesamt_g=0
     for key,b in bedarf.items():
         menge=b["zu_produzieren"]
@@ -791,7 +795,32 @@ def berechne_murbeteig(bedarf):
         g=menge*MURBETEIG_PORTIONEN.get(murt,0)
         if murt not in portionen: portionen[murt]={"anzahl":0,"gramm":0}
         portionen[murt]["anzahl"]+=menge; portionen[murt]["gramm"]+=g; gesamt_g+=g
-    gr=math.ceil(gesamt_g/MURBETEIG_GESAMT) if MURBETEIG_GESAMT else 0
+
+    # ── Vorhandene gebackene Boeden abziehen ─────────────────────
+    lager_map = {
+        "Tartelette":    lager.get("Muerbeteig_Tartelette", 0),
+        "30x20 Schnitte":lager.get("Muerbeteig_Schnitte",   0),
+        "Kuchenform":    lager.get("Muerbeteig_Kuchen",      0),
+        "Mürbeteig rund":lager.get("Muerbeteig_Rund",        0),
+    }
+    for form, vorrat in lager_map.items():
+        if vorrat <= 0: continue
+        g_vorrat = vorrat * MURBETEIG_PORTIONEN.get(form, 0)
+        gesamt_g = max(0, gesamt_g - g_vorrat)
+        if form in portionen:
+            abzug = min(vorrat, portionen[form]["anzahl"])
+            portionen[form]["anzahl"] -= abzug
+            portionen[form]["gramm"]  -= abzug * MURBETEIG_PORTIONEN.get(form, 0)
+            if portionen[form]["anzahl"] <= 0:
+                del portionen[form]
+
+    # ── Rohen Teig im Kuehlschrank abziehen ─────────────────────
+    chargen_vorrat = lager.get("Muerbeteig_Chargen", 0)
+    if chargen_vorrat > 0 and MURBETEIG_GESAMT:
+        g_vorrat = chargen_vorrat * MURBETEIG_GESAMT
+        gesamt_g = max(0, gesamt_g - g_vorrat)
+
+    gr=math.ceil(gesamt_g/MURBETEIG_GESAMT) if MURBETEIG_GESAMT and gesamt_g > 0 else 0
     return {"portionen":portionen,"gesamt_gramm":gesamt_g,"grundrezepte":gr,
             "skalierung":gesamt_g/MURBETEIG_GESAMT if MURBETEIG_GESAMT else 0,
             "kk_montag_reserve":0}
@@ -2137,8 +2166,11 @@ def main():
     print("Berechne Wochenbedarf...")
     bedarf=berechne_wochenbedarf(verkauf)
     print("  Bedarf: {}".format(bedarf))
+    print("Berechne Muerb­eteig-Bedarf...")
+    murt=berechne_murbeteig(bedarf, lager)
+    print("  Muerb­eteig: {}x Grundrezept".format(murt["grundrezepte"]))
     print("Erstelle Wochenplan...")
-    vtage,wplan=erstelle_wochenplan(bedarf,lager,rezepte,sub_rezepte)
+    vtage,wplan=erstelle_wochenplan(bedarf,murt,rezepte,sub_rezepte)
     print("Schreibe Excel...")
     schreibe_excel(wplan,vtage)
     print("Erstelle HTML Bestellliste...")
@@ -2147,7 +2179,6 @@ def main():
     for tag,aufgaben in wplan.items():
         ist_heut=tag==vtage[0] if vtage else False
         lager_info=berechne_lager_info(tag,wplan,lager,bedarf)
-        murt=berechne_murt_info(tag,wplan)
         erstelle_html(tag,aufgaben,murt,rezepte,sub_rezepte=sub_rezepte,
                       lager_info=lager_info,ist_heut=ist_heut,preise=preise)
     print("Erstelle HTML Wochenuebersicht...")
