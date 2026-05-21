@@ -24,19 +24,37 @@ def cafe2_bereits_abgeholt():
     """
     return datetime.now().weekday() >= 1   # 0=Mo, 1=Di, 2=Mi ...
 
-def ab_heute_tage():
+def ab_heute_tage(ab_morgen=False):
     """Gibt die noch verbleibenden Arbeitstage zurueck (ab heute inkl.).
     Samstag/Sonntag → komplette Woche (Planung fuer naechste Woche).
+    ab_morgen=True → startet erst ab dem naechsten Arbeitstag (z.B. wenn
+    Zahlen nach der heutigen Produktion aktualisiert werden).
     """
     wochentag_idx = datetime.now().weekday()  # 0=Mo, 1=Di, ..., 6=So
     if wochentag_idx >= 5:   # Wochenende → volle Woche planen
         return list(ARBEITSTAGE)
+    if ab_morgen:
+        # Naechsten Arbeitstag als Start: Freitag → volle naechste Woche
+        naechster = wochentag_idx + 1
+        if naechster >= 5:   # Wochenende ueberspringen → volle Woche
+            return list(ARBEITSTAGE)
+        return ARBEITSTAGE[naechster:]
     return ARBEITSTAGE[wochentag_idx:]
 
 FROSTER_SCHWELLEN = {
-    "Beeren Tartelette":               45,
-    "Mango-Passionsfrucht Tartelette": 45,
+    "Beeren Tartelette":               30,
+    "Mango-Passionsfrucht Tartelette": 30,
     "Pistazien Toertchen":             30,
+}
+
+# C2-Puffer: Stueckzahl je Produkt, die Montag im Froster sein muss (Cafe-2-Lieferung Di)
+# Wird aus Konfiguration.xlsx gelesen; Fallback-Wert hier
+C2_PUFFER = {
+    "Donauwelle":              4,
+    "Kaese-Rhabarber Schnitte":4,
+    "Kaesekuchen":             4,
+    "Bienenstich":             4,
+    "Lauch-Speck Quiche":      4,
 }
 
 # max_ofen = Stueck pro Ofengang | formen = Backformen vorhanden | min_charge = Mindestmenge
@@ -638,6 +656,13 @@ def lade_konfiguration():
                 if val is not None:
                     try: FROSTER_SCHWELLEN[key] = int(float(str(val)))
                     except: pass
+            # C2-Puffer aus Spalte 6, Zeilen 12-16 (frische Produkte)
+            frisch_keys=["Donauwelle","Kaese-Rhabarber Schnitte","Kaesekuchen","Bienenstich","Lauch-Speck Quiche"]
+            for i, key in enumerate(frisch_keys):
+                val = ws2.cell(row=i+12, column=6).value
+                if val is not None:
+                    try: C2_PUFFER[key] = int(float(str(val)))
+                    except: pass
         except Exception:
             # Fallback: custom parser fuer OneDrive-korrumpierte Dateien
             sheet1 = lese_alle_zellen(str(KONFIGURATION_DATEI), 'xl/worksheets/sheet1.xml')
@@ -659,8 +684,14 @@ def lade_konfiguration():
                 if val:
                     try: FROSTER_SCHWELLEN[key] = int(float(str(val)))
                     except: pass
-        print("Konfiguration: Ofen={}, Schwellen={}".format(
-            {k:v['max_ofen'] for k,v in PRODUKT_CONFIG.items()}, FROSTER_SCHWELLEN))
+            frisch_keys=["Donauwelle","Kaese-Rhabarber Schnitte","Kaesekuchen","Bienenstich","Lauch-Speck Quiche"]
+            for i, key in enumerate(frisch_keys):
+                val = sheet2.get(i+12, {}).get(6)
+                if val:
+                    try: C2_PUFFER[key] = int(float(str(val)))
+                    except: pass
+        print("Konfiguration: Ofen={}, Schwellen={}, C2-Puffer={}".format(
+            {k:v['max_ofen'] for k,v in PRODUKT_CONFIG.items()}, FROSTER_SCHWELLEN, C2_PUFFER))
     except Exception as e:
         print("Warnung Konfiguration: {}".format(e))
 
@@ -716,6 +747,7 @@ def lese_lagerbestand():
                 lager['_naechste_tartelette'] = 'Mango-Passionsfrucht Tartelette'
             else:
                 lager['_naechste_tartelette'] = None
+            lager['_plan_ab_morgen'] = bool(data.get("plan_ab_morgen", False))
             for key in PRODUKT_CONFIG:
                 lager.setdefault(key, 0.0)
             print("  Lagerbestand aus JSON gelesen.")
@@ -772,13 +804,26 @@ def berechne_wochenbedarf(verkauf, lager, cafe2_erledigt=False):
             sw=FROSTER_SCHWELLEN[key]; prod=60 if stock<sw else 0
             grund="Produzieren ({}<{})".format(int(stock),sw) if prod else "Lager OK ({}>={})".format(int(stock),sw)
         else:
-            netto=max(0,gesamt-stock); mc=cfg["min_charge"]
-            prod=math.ceil(netto/mc)*mc if netto>0 else 0; grund=""
+            # Dynamischer Soll-Stand: C1-Puffer (So+Mo aus Verkaufszahlen) + C2-Puffer aus Konfiguration
+            tv_so = verkauf.get("Cafe 1",{}).get(key,{}).get("Sonntag",0)
+            tv_mo = verkauf.get("Cafe 1",{}).get(key,{}).get("Montag",0)
+            c1_puffer = math.ceil(tv_so + tv_mo)
+            c2_puffer_val = C2_PUFFER.get(key, 4)
+            soll_stand = c1_puffer + c2_puffer_val
+            # Ziel: Cafe-1-Wochenbedarf abdecken UND Soll-Stand im Froster erreichen
+            target = gesamt + soll_stand
+            netto = max(0, target - stock)
+            mc = cfg["min_charge"]
+            prod = math.ceil(netto/mc)*mc if netto>0 else 0
+            grund = "Soll-Stand: {} (C1-Puffer So+Mo={}+{}={}, C2-Puffer={})".format(
+                soll_stand, int(tv_so), int(tv_mo), c1_puffer, c2_puffer_val)
         cafe2_lief=0 if cafe2_erledigt else (min(math.ceil(c2),int(stock)) if cfg.get("cafe2") else 0)
+        soll_stand_val = soll_stand if key not in ("Beeren Tartelette","Mango-Passionsfrucht Tartelette","Pistazien Toertchen") else FROSTER_SCHWELLEN.get(key)
         bedarf[key]={"cafe1_woche":round(c1,1),"cafe2_woche":round(c2,1),"cafe2_erledigt":cafe2_erledigt,
                      "gesamt_woche":round(gesamt,1),"im_lager":stock,
                      "netto_bedarf":round(max(0,gesamt-stock),1),
-                     "zu_produzieren":prod,"cafe2_lieferung":cafe2_lief,"grund":grund}
+                     "zu_produzieren":prod,"cafe2_lieferung":cafe2_lief,"grund":grund,
+                     "soll_stand":soll_stand_val}
     return bedarf
 
 def berechne_murbeteig(bedarf, lager=None):
@@ -973,7 +1018,8 @@ def verteile_bestandssicher(produkt_key, bedarf, aktiv_plan, verfuegbare_tage, p
         # --- Zeitoptimal: geringste aktive Arbeitszeit unter Kandidaten ---
         best_i = min(kandidaten, key=lambda i: aktiv_plan.get(tage[i], 0))
         placed[best_i] = per_charge
-        result.append(tage[best_i])
+        # notwendig = True wenn deadline_idx gesetzt war (Lager waere sonst negativ geworden)
+        result.append((tage[best_i], deadline_idx is not None))
 
     return result
 
@@ -991,16 +1037,18 @@ def erstelle_wochenplan(bedarf, murt, rezepte=None, sub_rezepte=None, verbleiben
         """Filtert eine Tagesliste auf die verbleibenden Tage."""
         return [t for t in tage_liste if t in vtage]
 
-    def add(tag,produkt,menge,notiz="",prio=10,excel_only=False,produkt_key=None,aktiv_min=0,passiv_min=0):
+    def add(tag,produkt,menge,notiz="",prio=10,excel_only=False,produkt_key=None,aktiv_min=0,passiv_min=0,notwendig=None):
         plan[tag].append({"produkt":produkt,"menge":menge,"notiz":notiz,
                           "prio":prio,"excel_only":excel_only,
                           "produkt_key":produkt_key or produkt,
-                          "aktiv_min":aktiv_min,"passiv_min":passiv_min})
+                          "aktiv_min":aktiv_min,"passiv_min":passiv_min,
+                          "notwendig":notwendig})
         if not excel_only and aktiv_min: aktiv_plan[tag] += aktiv_min
-    def info(tag,produkt,notiz="",prio=10,excel_only=False,aktiv_min=0,passiv_min=0):
+    def info(tag,produkt,notiz="",prio=10,excel_only=False,aktiv_min=0,passiv_min=0,notwendig=None):
         plan[tag].append({"produkt":produkt,"menge":0,"notiz":notiz,
                           "prio":prio,"excel_only":excel_only,"produkt_key":None,
-                          "aktiv_min":aktiv_min,"passiv_min":passiv_min})
+                          "aktiv_min":aktiv_min,"passiv_min":passiv_min,
+                          "notwendig":notwendig})
         if not excel_only and aktiv_min: aktiv_plan[tag] += aktiv_min
 
     # --- CAFE 2 LIEFERUNG (nur Excel) ---
@@ -1054,13 +1102,14 @@ def erstelle_wochenplan(bedarf, murt, rezepte=None, sub_rezepte=None, verbleiben
                                           _filter(["Dienstag","Mittwoch","Donnerstag","Freitag"]), kk_max)
     else:
         tage_kk = []
-    for tag in tage_kk:
+    for tag, _notw_kk in tage_kk:
         if rem_kk<=0: break
         heute=0
         while rem_kk>0 and heute<kk_per_day:
             ch=min(kk_max,rem_kk)
             add(tag,"Kaesekuchen",ch,"Charge {}/{}".format(cn,kk_ges),
-                prio=PRIO["KK"],produkt_key="Kaesekuchen",aktiv_min=kk_a,passiv_min=kk_p)
+                prio=PRIO["KK"],produkt_key="Kaesekuchen",aktiv_min=kk_a,passiv_min=kk_p,
+                notwendig=_notw_kk)
             rem_kk-=ch; cn+=1; heute+=ch
     murt["kk_montag_reserve"]=min(kk_per_day,kk_menge)
 
@@ -1105,11 +1154,11 @@ def erstelle_wochenplan(bedarf, murt, rezepte=None, sub_rezepte=None, verbleiben
     b_a, b_p = berechne_zeitaufwand("Bienenstich", rezepte, sub_rezepte, b_max)
     tage_b = verteile_bestandssicher("Bienenstich", bedarf, aktiv_plan,
                                      _filter(["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"]), b_max)
-    for tag in tage_b:
+    for tag, _notw in tage_b:
         if rem<=0: break
         ch=min(rem,b_max)
         add(tag,"Bienenstich",ch,"Charge {}/{}".format(c,b_ges),prio=PRIO["BIEN"],
-            produkt_key="Bienenstich",aktiv_min=b_a,passiv_min=b_p)
+            produkt_key="Bienenstich",aktiv_min=b_a,passiv_min=b_p,notwendig=_notw)
         rem-=ch; c+=1
 
     # --- QUICHE ---
@@ -1120,11 +1169,11 @@ def erstelle_wochenplan(bedarf, murt, rezepte=None, sub_rezepte=None, verbleiben
     q_a, q_p = berechne_zeitaufwand("Lauch-Speck Quiche", rezepte, sub_rezepte, q_max)
     tage_q = verteile_bestandssicher("Lauch-Speck Quiche", bedarf, aktiv_plan,
                                      _filter(["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"]), q_max)
-    for tag in tage_q:
+    for tag, _notw in tage_q:
         if rem<=0: break
         ch=min(rem,q_max)
         add(tag,"Lauch-Speck Quiche",ch,"Charge {}/{}".format(c,q_ges),prio=PRIO["QUICHE"],
-            produkt_key="Lauch-Speck Quiche",aktiv_min=q_a,passiv_min=q_p)
+            produkt_key="Lauch-Speck Quiche",aktiv_min=q_a,passiv_min=q_p,notwendig=_notw)
         rem-=ch; c+=1
 
     # --- DONAUWELLE ---
@@ -1135,11 +1184,11 @@ def erstelle_wochenplan(bedarf, murt, rezepte=None, sub_rezepte=None, verbleiben
     d_a, d_p = berechne_zeitaufwand("Donauwelle", rezepte, sub_rezepte, d_max)
     tage_d = verteile_bestandssicher("Donauwelle", bedarf, aktiv_plan,
                                      _filter(["Dienstag","Mittwoch","Donnerstag","Freitag"]), d_max)
-    for tag in tage_d:
+    for tag, _notw in tage_d:
         if rem<=0: break
         ch=min(rem,d_max)
         add(tag,"Donauwelle",ch,"Charge {}/{}".format(c,d_ges),prio=PRIO["DONA"],
-            produkt_key="Donauwelle",aktiv_min=d_a,passiv_min=d_p)
+            produkt_key="Donauwelle",aktiv_min=d_a,passiv_min=d_p,notwendig=_notw)
         rem-=ch; c+=1
 
     # --- KAESE-RHABARBER ---
@@ -1150,11 +1199,11 @@ def erstelle_wochenplan(bedarf, murt, rezepte=None, sub_rezepte=None, verbleiben
     kr_a, kr_p = berechne_zeitaufwand("Kaese-Rhabarber Schnitte", rezepte, sub_rezepte, kr_max)
     tage_kr = verteile_bestandssicher("Kaese-Rhabarber Schnitte", bedarf, aktiv_plan,
                                      _filter(["Dienstag","Mittwoch","Donnerstag","Freitag"]), kr_max)
-    for tag in tage_kr:
+    for tag, _notw in tage_kr:
         if rem<=0: break
         ch=min(rem,kr_max)
         add(tag,"Kaese-Rhabarber Schnitte",ch,"Charge {}/{}".format(c,kr_ges),prio=PRIO["KR"],
-            produkt_key="Kaese-Rhabarber Schnitte",aktiv_min=kr_a,passiv_min=kr_p)
+            produkt_key="Kaese-Rhabarber Schnitte",aktiv_min=kr_a,passiv_min=kr_p,notwendig=_notw)
         rem-=ch; c+=1
 
     # --- TARTELETTES ---
@@ -1746,10 +1795,17 @@ HTML_CSS = (
     "padding:4px 14px;font-size:13px;font-weight:600;margin:2px}"
     ".zeitbadge .passiv{background:#8AAECC}"
     ".task{background:white;border-radius:12px;padding:14px;margin-bottom:10px;"
-    "box-shadow:0 1px 4px rgba(0,0,0,.08);border-left:4px solid #2E75B6}"
+    "box-shadow:0 1px 4px rgba(0,0,0,.08);border-left:4px solid #2E75B6;cursor:pointer}"
     ".task.special{border-left-color:#375623}"
     ".task.prep{border-left-color:#9B59B6;background:#F9F0FF}"
-    ".task-header{font-weight:700;font-size:16px;margin-bottom:4px}"
+    ".task-header{font-weight:700;font-size:16px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:flex-start;gap:6px}"
+    ".task-title-text{flex:1}"
+    ".task-toggle{font-size:13px;color:#bbb;flex-shrink:0;padding-top:2px;transition:transform .2s;display:inline-block;line-height:1}"
+    ".task.collapsed .task-toggle{transform:rotate(-90deg)}"
+    ".task-body{}"
+    ".task.collapsed .task-body{display:none}"
+    ".task.done{opacity:0.55;border-left-color:#ccc!important}"
+    ".task.done .task-title-text{text-decoration:line-through;color:#aaa}"
     ".task-note{color:#555;font-size:13px;margin-bottom:6px}"
     ".task-zeit{color:#2E75B6;font-size:12px;font-weight:600;margin-bottom:6px}"
     ".recipe{background:#F0F7F0;border-radius:8px;padding:10px;margin-top:8px;border:1px solid #C6DFC6}"
@@ -1780,6 +1836,10 @@ HTML_CSS = (
     ".lager-leer .lager-bestand{color:#c0392b;font-weight:700}"
     ".lager-niedrig .lager-name{color:#e67e22}"
     ".lager-niedrig .lager-bestand{color:#e67e22;font-weight:600}"
+    ".badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;"
+    "border-radius:10px;margin-left:8px;vertical-align:middle;white-space:nowrap}"
+    ".badge-notwendig{background:#FDECEA;color:#C62828;border:1px solid #EF9A9A}"
+    ".badge-puffer{background:#FFF8E1;color:#7B6200;border:1px solid #FDD835}"
 )
 
 def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=None, ist_heut=False, preise=None):
@@ -1824,13 +1884,15 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
                 for z,mg in MURBETEIG_REZEPT.items()
             )
             inhalt+=(
-                '<div class="task special">'
-                '<div class="task-header">Muerbeteig ansetzen &mdash; {}x Grundrezept</div>'
+                '<div class="task special" onclick="toggleTask(this)">'
+                '<div class="task-header"><span class="task-title-text">Muerbeteig ansetzen &mdash; {}x Grundrezept</span><span class="task-toggle">&#9660;</span></div>'
+                '<div class="task-body">'
                 '<div class="task-note">{}</div>'
                 '{}'
                 '<div class="recipe">'
                 '<div class="recipe-title">Grundrezept (1x ansetzen, {}x wiederholen)</div>'
                 '<ul class="zutaten">{}</ul>'
+                '</div>'
                 '</div></div>'
             ).format(gr,n,_zeit_badge(a_min,p_min),gr,zutaten_html)
             continue
@@ -1847,12 +1909,14 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
                 portionen_html+='<li><span class="zutat">{}x Mürbeteig rund (fuer naechsten Montag)</span><span class="menge">{}g</span></li>'.format(
                     res,res*MURBETEIG_PORTIONEN.get("Mürbeteig rund", 180))
             inhalt+=(
-                '<div class="task special">'
-                '<div class="task-header">Muerbeteig backen &mdash; alle Boeden heute</div>'
+                '<div class="task special" onclick="toggleTask(this)">'
+                '<div class="task-header"><span class="task-title-text">Muerbeteig backen &mdash; alle Boeden heute</span><span class="task-toggle">&#9660;</span></div>'
+                '<div class="task-body">'
                 '<div class="task-note">180&deg;C, 7&ndash;9 Minuten</div>'
                 '{}'
                 '<div class="recipe"><div class="recipe-title">Boeden aufteilen</div>'
                 '<ul class="zutaten">{}</ul></div>'
+                '</div>'
                 '</div>'
             ).format(_zeit_badge(a_min,p_min),portionen_html)
             continue
@@ -1860,11 +1924,12 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
         # --- Pistazien ---
         if "PISTAZIEN" in p.upper():
             cls="prep"
-            inhalt+='<div class="task {}">' \
-                    '<div class="task-header">{}{}</div>' \
-                    '{}<div class="task-note">{}</div></div>'.format(
-                        cls, p, " &mdash; {} Stk".format(int(m)) if m else "",
-                        _zeit_badge(a_min,p_min), n)
+            inhalt+='<div class="task {}" onclick="toggleTask(this)">'.format(cls)
+            inhalt+='<div class="task-header"><span class="task-title-text">{}{}</span><span class="task-toggle">&#9660;</span></div>'.format(
+                p, " &mdash; {} Stk".format(int(m)) if m else "")
+            inhalt+='<div class="task-body">{}<div class="task-note">{}</div></div>'.format(
+                _zeit_badge(a_min,p_min), n)
+            inhalt+='</div>'
             continue
 
         # --- Streusel herstellen ---
@@ -1878,11 +1943,13 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
             if srz:
                 streusel_recipe_html = format_sub_rezept_html(sr_key, srz, n_mal_s)
             inhalt += (
-                '<div class="task special">'
-                '<div class="task-header">Streusel herstellen &mdash; {}x Grundrezept</div>'
+                '<div class="task special" onclick="toggleTask(this)">'
+                '<div class="task-header"><span class="task-title-text">Streusel herstellen &mdash; {}x Grundrezept</span><span class="task-toggle">&#9660;</span></div>'
+                '<div class="task-body">'
                 '<div class="task-note">{}</div>'
                 '{}'
                 '{}'
+                '</div>'
                 '</div>'
             ).format(n_mal_s, n, _zeit_badge(a_min,p_min), streusel_recipe_html)
             continue
@@ -1907,10 +1974,19 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
             if p_min: z_parts.append("&#9201; {} passiv".format(fmt_min(p_min)))
             zeit_html = '<div class="task-zeit">{}</div>'.format(" &nbsp;|&nbsp; ".join(z_parts))
 
-        if m and m > 0:
-            inhalt+='<div class="task"><div class="task-header">{} &mdash; {} Stk</div>'.format(p,int(m))
+        notwendig_val = a.get("notwendig")
+        if notwendig_val is True:
+            badge_html = '<span class="badge badge-notwendig">&#128308; Notwendig</span>'
+        elif notwendig_val is False:
+            badge_html = '<span class="badge badge-puffer">&#128993; Puffer aufbauen</span>'
         else:
-            inhalt+='<div class="task"><div class="task-header">{}</div>'.format(p)
+            badge_html = ""
+
+        if m and m > 0:
+            inhalt+='<div class="task" onclick="toggleTask(this)"><div class="task-header"><span class="task-title-text">{} &mdash; {} Stk{}</span><span class="task-toggle">&#9660;</span></div>'.format(p,int(m),badge_html)
+        else:
+            inhalt+='<div class="task" onclick="toggleTask(this)"><div class="task-header"><span class="task-title-text">{}{}</span><span class="task-toggle">&#9660;</span></div>'.format(p,badge_html)
+        inhalt+='<div class="task-body">'
         if charge_info: inhalt+='<div class="task-note">{}</div>'.format(charge_info)
         if notiz_extra: inhalt+='<div class="task-note" style="color:#8B4513">{}</div>'.format(notiz_extra)
         if zeit_html: inhalt+=zeit_html
@@ -1928,7 +2004,7 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
                     inhalt+=format_alle_sub_rezepte_html(rzp,tagesm,sub_rezepte,skip_keys=skip)
             rezept_gezeigt.add(pk)
 
-        inhalt+='</div>'
+        inhalt+='</div></div>'
 
     # --- Lager-Status-Panel ---
     if lager_info:
@@ -1983,12 +2059,64 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
         '&#9888; Neuplanung ab heute &mdash; vergangene Tage dieser Woche nicht enthalten'
         '</div>'
     ) if ist_heut else ""
+    toggle_js = (
+        "<script>"
+        "function toggleTask(el){"
+        "var wasCollapsed=el.classList.contains('collapsed');"
+        "el.classList.toggle('collapsed');"
+        "if(el.classList.contains('done')&&!wasCollapsed){el.classList.remove('done');}"
+        "saveState();"
+        "}"
+        "function markDone(el,e){"
+        "e.stopPropagation();"
+        "el.classList.toggle('done');"
+        "if(!el.classList.contains('done')){el.classList.remove('collapsed');}"
+        "else{el.classList.add('collapsed');}"
+        "saveState();"
+        "}"
+        "function saveState(){"
+        "var states={};"
+        "document.querySelectorAll('.task[data-id]').forEach(function(el){"
+        "states[el.dataset.id]=(el.classList.contains('collapsed')?'c':'')+(el.classList.contains('done')?'d':'');"
+        "});"
+        "try{localStorage.setItem('tp_'+location.pathname,JSON.stringify(states));}catch(e){}"
+        "}"
+        "document.addEventListener('DOMContentLoaded',function(){"
+        "var idx=0;"
+        "document.querySelectorAll('.task').forEach(function(el){"
+        "el.dataset.id='t'+(idx++);"
+        "var btn=document.createElement('button');"
+        "btn.className='done-btn';"
+        "btn.title='Erledigt markieren';"
+        "btn.innerHTML='&#10003;';"
+        "btn.onclick=function(e){markDone(el,e);};"
+        "var hdr=el.querySelector('.task-header');"
+        "if(hdr)hdr.appendChild(btn);"
+        "});"
+        "try{"
+        "var states=JSON.parse(localStorage.getItem('tp_'+location.pathname)||'{}');"
+        "document.querySelectorAll('.task[data-id]').forEach(function(el){"
+        "var s=states[el.dataset.id]||'';"
+        "if(s.indexOf('c')>=0)el.classList.add('collapsed');"
+        "if(s.indexOf('d')>=0)el.classList.add('done','collapsed');"
+        "});"
+        "}catch(e){}"
+        "});"
+        "</script>"
+    )
+    done_btn_css = (
+        ".done-btn{background:none;border:1.5px solid #ccc;border-radius:50%;width:22px;height:22px;"
+        "font-size:12px;color:#aaa;cursor:pointer;flex-shrink:0;margin-left:4px;padding:0;line-height:1;"
+        "display:flex;align-items:center;justify-content:center;transition:all .15s}"
+        ".done-btn:active{background:#e8f5e9;border-color:#43a047;color:#43a047}"
+        ".task.done .done-btn{background:#e8f5e9;border-color:#43a047;color:#43a047}"
+    )
     html=(
         "<!DOCTYPE html>\n"
         '<html lang="de"><head>'
         '<meta charset="UTF-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1.0">\n'
-        "<title>{tag}</title><style>{css}</style></head><body>\n"
+        "<title>{tag}</title><style>{css}{done_btn_css}</style></head><body>\n"
         "<h1>{tag}</h1>"
         '<div class="datum">KW {kw} &middot; {datum}</div>\n'
         "{heute_banner}"
@@ -1996,8 +2124,9 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
         "{inhalt}\n"
         "{einkauf_html}\n"
         '<div class="footer">Kuchenproduktion &middot; KW {kw}</div>\n'
+        "{toggle_js}"
         "</body></html>"
-    ).format(tag=tag,kw=kw,datum=datum,inhalt=inhalt,css=HTML_CSS,zeitbadge=zeitbadge,heute_banner=heute_banner,einkauf_html=einkauf_html)
+    ).format(tag=tag,kw=kw,datum=datum,inhalt=inhalt,css=HTML_CSS,zeitbadge=zeitbadge,heute_banner=heute_banner,einkauf_html=einkauf_html,toggle_js=toggle_js,done_btn_css=done_btn_css)
 
     fname=OUTPUT_PFAD/"{}.html".format(tag)
     fname.write_text(html,encoding="utf-8")
@@ -2098,96 +2227,84 @@ def frage_vorbereitungen(bedarf, wplan, vtage, sub_rezepte):
     if not relevante:
         return wplan
 
-    # ── Interaktive Abfrage ─────────────────────────────────────
-    nicht_interaktiv = not sys.stdin.isatty()
-    print()
-    print("=" * 52)
-    print("  ZWISCHENPRODUKT-CHECK  (Midweek-Neuplanung ab {})".format(erster_tag))
-    print("=" * 52)
-
+    # ── Interaktive Abfrage ────────────────────────────────
     for v in relevante:
-        if nicht_interaktiv:
-            # Im nicht-interaktiven Modus (z.B. scheduled task): alles als erledigt annehmen
-            print("  [auto] {} -> als erledigt angenommen".format(v["id"]))
-            continue
-
-        while True:
-            try:
-                antwort = input("  {} (j/n): ".format(v["frage"])).strip().lower()
-            except (EOFError, KeyboardInterrupt):
-                antwort = "j"
-            if antwort in ("j", "ja", "y", "yes", ""):
-                print("    Gut — wird als erledigt behandelt.")
-                break
-            elif antwort in ("n", "nein", "no"):
-                print("    -> Wird auf {} vorgezogen.".format(erster_tag))
-                # Aufgabe mit hoher Prioritaet vorne einfuegen
-                aufgabe = {
-                    "produkt":     v["aufgabe"],
-                    "menge":       0,
-                    "notiz":       v["notiz"],
-                    "prio":        v["prio"],
-                    "excel_only":  False,
-                    "produkt_key": None,
-                    "aktiv_min":   v["aktiv_min"],
-                    "passiv_min":  v["passiv_min"],
-                }
-                wplan[erster_tag].append(aufgabe)
-                # Neu sortieren (wie am Ende von erstelle_wochenplan)
-                wplan[erster_tag].sort(key=lambda x: x["prio"])
-                break
-            else:
-                print("    Bitte j (ja) oder n (nein) eingeben.")
-    print()
+        antwort = input("\n{} [j/N]: ".format(v["frage"])).strip().lower()
+        if antwort != "j":
+            erster_tag_plan = vtage[0]
+            wplan.setdefault(erster_tag_plan, []).insert(0, {
+                "produkt":      v["aufgabe"],
+                "produkt_key":  None,
+                "notiz":        v["notiz"],
+                "menge":        0,
+                "prio":         v.get("prio", 5),
+                "aktiv_min":    v.get("aktiv_min", 0),
+                "passiv_min":   v.get("passiv_min", 0),
+                "excel_only":   False,
+            })
     return wplan
+
 
 # ============================================================
 # MAIN
 # ============================================================
 def main():
     print("\nKuchenproduktion Wochenplaner")
-    print("="*40)
+    print("========================================")
+
     print("Lade Konfiguration...")
     lade_konfiguration()
-    _init_murbeteig()
-    print("Lade Rezepte...")
-    rezepte=lade_alle_rezepte()
-    print("  {} Rezepte geladen: {}".format(len(rezepte),list(rezepte.keys())))
-    sub_rezepte=lade_sub_rezepte()
-    print("  {} Sub-Rezepte geladen: {}".format(len(sub_rezepte),list(sub_rezepte.keys())))
-    print("Lade Preise...")
-    preise=lade_preise()
-    print("  {} Preiseintraege geladen".format(len(preise)))
-    print("Lese Verkaufszahlen...")
-    verkauf=lese_verkaufszahlen()
-    print("Lese Lagerbestand...")
-    lager=lese_lagerbestand()
-    print("  Lager: {}".format(lager))
-    print("Berechne Wochenbedarf...")
-    cafe2_erledigt=cafe2_bereits_abgeholt()
-    bedarf=berechne_wochenbedarf(verkauf,lager,cafe2_erledigt)
-    print("  Bedarf: {}".format(bedarf))
-    print("Berechne Muerb­eteig-Bedarf...")
-    murt=berechne_murbeteig(bedarf, lager)
-    print("  Muerb­eteig: {}x Grundrezept".format(murt["grundrezepte"]))
-    print("Erstelle Wochenplan...")
-    vtage,wplan=erstelle_wochenplan(bedarf,murt,rezepte,sub_rezepte)
-    print("Schreibe Excel...")
-    erstelle_excel(bedarf,murt,wplan)
-    print("Erstelle HTML Bestellliste...")
-    erstelle_html_bestellliste(bedarf,wplan,vtage,verkauf,lager,rezepte,sub_rezepte,preise)
-    print("Berechne Lagerprognose...")
-    rolling,tages_info,engpaesse=berechne_rolling_inventory(bedarf,lager,wplan)
-    if engpaesse: print("  WARNUNG Engpaesse: {}".format(engpaesse))
-    print("Erstelle HTML Tagesplaene...")
-    for tag,aufgaben in wplan.items():
-        ist_heut=tag==vtage[0] if vtage else False
-        lager_info=tages_info.get(tag,[])
-        erstelle_html(tag,aufgaben,murt,rezepte,sub_rezepte=sub_rezepte,
-                      lager_info=lager_info,ist_heut=ist_heut,preise=preise)
-    print("Erstelle HTML Wochenuebersicht...")
-    erstelle_html_wochenuebersicht(bedarf,murt,wplan,rolling,tages_info)
-    print("\nFertig!")
 
-if __name__=="__main__":
-    main()
+    _init_murbeteig()
+
+    print("Lade Rezepte...")
+    rezepte = lade_alle_rezepte()
+    print("  {} Rezepte geladen: {}".format(len(rezepte), list(rezepte.keys())))
+
+    sub_rezepte = lade_sub_rezepte()
+    print("  {} Sub-Rezepte geladen: {}".format(len(sub_rezepte), list(sub_rezepte.keys())))
+
+    print("Lade Preise...")
+    preise = lade_preise()
+    print("  {} Preiseintraege geladen".format(len(preise)))
+
+    print("Lese Verkaufszahlen...")
+    verkauf = lese_verkaufszahlen()
+
+    print("Lese Lagerbestand...")
+    lager = lese_lagerbestand()
+    print("  Lager: {}".format(lager))
+
+    plan_ab_morgen = bool(lager.get('_plan_ab_morgen', False))
+    if plan_ab_morgen:
+        print("  >> Plan ab MORGEN (flag plan_ab_morgen=true gesetzt)")
+
+    print("Berechne Wochenbedarf...")
+    cafe2_erledigt = cafe2_bereits_abgeholt()
+    bedarf = berechne_wochenbedarf(verkauf, lager, cafe2_erledigt)
+    print("  Bedarf: {}".format(bedarf))
+
+    print("Berechne Muerbeteig-Bedarf...")
+    murt = berechne_murbeteig(bedarf, lager)
+    print("  Muerbeteig: {}x Grundrezept".format(murt["grundrezepte"]))
+
+    print("Erstelle Wochenplan...")
+    verbleibende_tage = ab_heute_tage(ab_morgen=plan_ab_morgen)
+    vtage, wplan = erstelle_wochenplan(bedarf, murt, rezepte, sub_rezepte,
+                                       verbleibende_tage=verbleibende_tage)
+
+    print("Schreibe Excel...")
+    erstelle_excel(bedarf, murt, wplan)
+
+    print("Erstelle HTML Bestellliste...")
+    erstelle_html_bestellliste(bedarf, wplan, vtage, verkauf, lager, rezepte, sub_rezepte, preise)
+
+    print("Berechne Lagerprognose...")
+    rolling, tages_info, engpaesse = berechne_rolling_inventory(bedarf, lager, wplan)
+    if engpaesse:
+        print("  WARNUNG Engpaesse: {}".format(engpaesse))
+
+    print("Erstelle HTML Tagesplaene...")
+    for tag, aufgaben in wplan.items():
+        ist_heut = (tag == vtage[0]) if vtage else False
+        lager_inf
