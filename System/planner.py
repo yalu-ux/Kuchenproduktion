@@ -986,7 +986,7 @@ def erstelle_wochenplan(bedarf, murt, rezepte=None, sub_rezepte=None, verbleiben
     sub_rezepte = sub_rezepte or {}
     aktiv_plan = defaultdict(int)  # {tag: geplante_aktiv_min} fuer Lastverteilung
     # Verbleibende Tage: nur diese werden beplant
-    vtage = list(verbleibende_tage) if verbleibende_tage else list(ARBEITSTAGE)
+    vtage = list(verbleibende_tage) if verbleibende_tage else ab_heute_tage()
     def _filter(tage_liste):
         """Filtert eine Tagesliste auf die verbleibenden Tage."""
         return [t for t in tage_liste if t in vtage]
@@ -1176,7 +1176,7 @@ def erstelle_wochenplan(bedarf, murt, rezepte=None, sub_rezepte=None, verbleiben
     for tag in ARBEITSTAGE:
         plan[tag].sort(key=lambda x: x["prio"])
 
-    return plan
+    return vtage, plan
 
 # ============================================================
 # REZEPT-HTML HELFER
@@ -2164,7 +2164,8 @@ def main():
     lager=lese_lagerbestand()
     print("  Lager: {}".format(lager))
     print("Berechne Wochenbedarf...")
-    bedarf=berechne_wochenbedarf(verkauf)
+    cafe2_erledigt=cafe2_bereits_abgeholt()
+    bedarf=berechne_wochenbedarf(verkauf,lager,cafe2_erledigt)
     print("  Bedarf: {}".format(bedarf))
     print("Berechne Muerb­eteig-Bedarf...")
     murt=berechne_murbeteig(bedarf, lager)
@@ -2172,17 +2173,20 @@ def main():
     print("Erstelle Wochenplan...")
     vtage,wplan=erstelle_wochenplan(bedarf,murt,rezepte,sub_rezepte)
     print("Schreibe Excel...")
-    schreibe_excel(wplan,vtage)
+    erstelle_excel(bedarf,murt,wplan)
     print("Erstelle HTML Bestellliste...")
     erstelle_html_bestellliste(bedarf,wplan,vtage,verkauf,lager,rezepte,sub_rezepte,preise)
+    print("Berechne Lagerprognose...")
+    rolling,tages_info,engpaesse=berechne_rolling_inventory(bedarf,lager,wplan)
+    if engpaesse: print("  WARNUNG Engpaesse: {}".format(engpaesse))
     print("Erstelle HTML Tagesplaene...")
     for tag,aufgaben in wplan.items():
         ist_heut=tag==vtage[0] if vtage else False
-        lager_info=berechne_lager_info(tag,wplan,lager,bedarf)
+        lager_info=tages_info.get(tag,[])
         erstelle_html(tag,aufgaben,murt,rezepte,sub_rezepte=sub_rezepte,
                       lager_info=lager_info,ist_heut=ist_heut,preise=preise)
     print("Erstelle HTML Wochenuebersicht...")
-    erstelle_html_wochenuebersicht(wplan,vtage,lager,bedarf)
+    erstelle_html_wochenuebersicht(bedarf,murt,wplan,rolling,tages_info)
     print("\nFertig!")
 
 if __name__=="__main__":
