@@ -230,6 +230,30 @@
   </div>
 </div>
 
+<!-- Plan-Start-Toggle -->
+<div class="section" style="margin-top:14px">
+  <div class="section-title">Planungsstart</div>
+  <div class="card">
+    <div class="toggle-row">
+      <div class="toggle-label">Plan erstellen ab:</div>
+      <div class="toggle-group">
+        <div class="toggle-option">
+          <input type="radio" name="planstart" id="plan_heute" value="heute" checked>
+          <label for="plan_heute">📅 Heute</label>
+        </div>
+        <div class="toggle-option">
+          <input type="radio" name="planstart" id="plan_morgen" value="morgen">
+          <label for="plan_morgen">⏭️ Morgen</label>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--grau);margin-top:8px;line-height:1.5">
+        „Morgen" wählen, wenn du die Zahlen nach der Produktion aktualisierst
+        und heute nicht mehr produzierst.
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Speichern -->
 <div class="save-section">
   <button class="save-btn" id="saveBtn" onclick="speichern()">
@@ -325,6 +349,9 @@ async function ladeLager() {
     if (nt.includes('Mango')) document.getElementById('tart_mango').checked = true;
     else document.getElementById('tart_beeren').checked = true;
 
+    // Planungsstart — nach dem Speichern immer auf "Heute" zurücksetzen
+    document.getElementById('plan_heute').checked = true;
+
     // Zeitstempel
     const ts = data.encoding ? '' : '';
     const commitUrl = `${getApiBase()}/commits?path=lagerbestand.json&per_page=1`;
@@ -373,6 +400,8 @@ async function speichern() {
     });
     const tart = document.querySelector('input[name="tart"]:checked');
     lager['naechste_tartelette'] = tart ? tart.value : 'Beeren Tartelette';
+    const planstart = document.querySelector('input[name="planstart"]:checked');
+    lager['plan_ab_morgen'] = planstart ? planstart.value === 'morgen' : false;
 
     // 3. Pushen
     const content = btoa(unescape(encodeURIComponent(
