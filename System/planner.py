@@ -61,9 +61,11 @@ VERKAUF_ZU_CONFIG = {
     "Käsekuchen":"Kaesekuchen","Pistazien Törtchen":"Pistazien Toertchen",
 }
 
-MURBETEIG_PORTIONEN = {"Tartelette":40,"30x20 Schnitte":200,"Kuchenform":350,"Murbeteig rund":180}
+MURBETEIG_PORTIONEN = {"Tartelette":40,"30x20 Schnitte":200,"Kuchenform":350,"Mürbeteig rund":180}
 MURBETEIG_REZEPT    = {"Zucker":250,"Butter":500,"Salz":1,"Zitronenaroma":1,"Vanillearoma":2,"Vollei":100,"Weizenmehl":750}
 MURBETEIG_GESAMT    = sum(MURBETEIG_REZEPT.values())
+MURBETEIG_AUSROLL   = {"Tartelette":0.5,"30x20 Schnitte":1,"Kuchenform":2,"Mürbeteig rund":1}
+MURBETEIG_ANBACK    = 9  # Minuten Anbackzeit
 
 # Sub-Rezept-Zuordnung: Zutat-Name (lowercase) → Schluessel in sub_rezepte dict
 SUB_REZEPT_MAPPING = {
@@ -90,16 +92,16 @@ SUB_REZEPT_MAX_FALLBACK = {
 }
 
 SUB_REZEPT_DATEIEN = {
-    "Salzmasse":                "Salzmasse.xlsx",
-    "Dinkelhefeteig":           "Dinkelhefeteig.xlsx",
-    "Sandmasse hell":           "Sandmasse hell.xlsx",
-    "Sandmasse dunkel":         "Sandmasse dunkel.xlsx",
-    "Deutsche Buttercreme":     "Deutsche Buttercreme.xlsx",
-    "Überzugsganache":          "Überzugsganache.xlsx",
-    "Amerikanische Käsemasse":  "Amerikanische Käsemasse.xlsx",
-    "Streusel":                 "Streusel.xlsx",
-    "Mandel Sandmasse":         "Mandel Sandmasse.xlsx",
-    "Vanillecreme":             "Vanillecreme.xlsx",
+    # "Dinkelhefeteig"       → in Lauch-Speck Quiche integriert
+    # "Amerikanische Käsemasse" → in Käse-Rhabarber Schnitte integriert
+    # "Salzmasse"            → in Lauch-Speck Quiche integriert
+    # "Deutsche Buttercreme" → in Donauwelle integriert
+    # "Mandel Sandmasse"     → in Pistazien-Schoko Törtchen integriert
+    # "Überzugsganache"      → in Donauwelle integriert
+    "Sandmasse hell":       "Sandmasse hell.xlsx",
+    "Sandmasse dunkel":     "Sandmasse dunkel.xlsx",
+    "Streusel":             "Streusel.xlsx",
+    "Vanillecreme":         "Vanillecreme.xlsx",
 }
 
 # Aufgaben-Prioritaeten fuer die Tagesreihenfolge
@@ -407,6 +409,69 @@ def parse_sub_rezept(pfad):
     return {'name': str(name_val), 'zutaten': zutaten, 'yield_gramm': yield_gramm,
             'yield_info': yield_info, 'aktiv_min': aktiv_min, 'passiv_min': passiv_min,
             'max_charge_num': max_charge_num, 'max_charge_gramm': max_charge_gramm}
+
+def _init_murbeteig():
+    """Laedt Muerb­eteig-Konfiguration aus Rezepte/Muer­beteig.xlsx
+    und aktualisiert die globalen Konstanten MURBETEIG_*.
+    Faellt auf die hardcodierten Standardwerte zurueck, wenn die Datei fehlt.
+    """
+    global MURBETEIG_PORTIONEN, MURBETEIG_REZEPT, MURBETEIG_GESAMT
+    global MURBETEIG_AUSROLL, MURBETEIG_ANBACK
+    pfad = REZEPTE_PFAD / "Mürbeteig.xlsx"
+    if not pfad.exists():
+        return
+    try:
+        zeilen = _lade_rezept_zeilen(pfad)
+        modus   = 'zutaten'
+        rezept  = {}
+        portionen = {}
+        ausroll   = {}
+        anback    = MURBETEIG_ANBACK
+        SKIP = {'maximal', 'haltbarkeit', 'hinweis', 'zutat', 'backform',
+                'rezept', 'zeitaufwand aktiv', 'zeitaufwand passiv'}
+        for b, c in zeilen:
+            if not b:
+                continue
+            bl = b.lower().strip()
+            # Abschnitts-Umschalter
+            if 'portionsgröß' in bl or 'portionsgroeß' in bl:
+                modus = 'portionen'; continue
+            if 'ausrollzeit' in bl:
+                modus = 'ausroll'; continue
+            if 'anbackzeit' in bl:
+                try: anback = int(float(str(c).replace(',', '.')))
+                except: pass
+                continue
+            # Überschriften / irrelevante Zeilen überspringen
+            if any(bl.startswith(s) for s in SKIP):
+                continue
+            if re.match(r'\d+\s*x$', bl):   # "1x"
+                continue
+            # Wert einlesen
+            if c:
+                try:
+                    val = float(str(c).replace(',', '.'))
+                    if modus == 'zutaten':
+                        rezept[b] = val
+                    elif modus == 'portionen':
+                        portionen[b] = val
+                    elif modus == 'ausroll':
+                        ausroll[b] = val
+                except (ValueError, TypeError):
+                    pass
+        if rezept:
+            MURBETEIG_REZEPT  = rezept
+            MURBETEIG_GESAMT  = sum(rezept.values())
+        if portionen:
+            MURBETEIG_PORTIONEN = portionen
+        if ausroll:
+            MURBETEIG_AUSROLL = ausroll
+        MURBETEIG_ANBACK = anback
+        print("  Mürbeteig aus xlsx geladen: {} Zutaten, {} Portionsformen".format(
+            len(MURBETEIG_REZEPT), len(MURBETEIG_PORTIONEN)))
+    except Exception as e:
+        print("  Warnung: Mürbeteig.xlsx Ladefehler: {}".format(e))
+
 
 def lade_sub_rezepte():
     """Laedt alle Sub-Rezept-Dateien."""
@@ -1196,14 +1261,16 @@ def berechne_zutaten(aufgaben, rezepte, sub_rezepte):
 
         # ── Hauptprodukt-Rezept ──────────────────────────────────
         if pk and pk in rezepte and menge > 0:
-            # Rezeptzutaten sind pro Charge (nicht pro Stück) →
-            # skalieren mit Anzahl der Chargen, nicht mit Stückzahl
-            max_c = rezepte[pk].get('max_charge_num', 1) or 1
-            n_chargen = math.ceil(menge / max_c)
+            # Sub-Rezept-Namen (z.B. "Streusel", "Vanillecreme") überspringen:
+            # ihre Rohzutaten erscheinen an dem Tag, an dem sie hergestellt werden.
+            sub_namen = {k.lower() for k in sub_rezepte.keys()}
+            # Rezeptzutaten sind pro Stück → skalieren mit Stückzahl
             for sec in rezepte[pk].get('sections', []):
                 for z in sec.get('zutaten', []):
                     if z['einheit'] == 'g':
-                        zutaten[z['zutat']] += z['menge'] * n_chargen
+                        if z['zutat'].lower() in sub_namen:
+                            continue  # In-House-Produkt: nicht in Einkaufsliste
+                        zutaten[z['zutat']] += z['menge'] * menge
 
         # ── Muerbeteig Ansetzen ──────────────────────────────────
         elif 'MUERBETEIG ANSETZEN' in prod_up:
@@ -1244,15 +1311,25 @@ def erstelle_html_einkaufsliste(tag, zutaten, preise):
     if not zutaten:
         return ''
 
-    rows = []
-    gesamt_kosten = 0.0
-    for zutat_name in sorted(zutaten.keys()):
-        gramm = zutaten[zutat_name]
+    # Zutaten per kanonischem Preis-Namen zusammenfassen
+    # (z.B. 'Milch' + 'Milch (Staerke)' -> 'Milch')
+    merged = {}  # canon_name -> {gramm, preis_kg}
+    for zutat_name, gramm in zutaten.items():
         if gramm <= 0:
             continue
-        kg      = gramm / 1000.0
-        info    = _preis_lookup(zutat_name, preise)
+        info = _preis_lookup(zutat_name, preise)
+        canon = info['name'] if info else zutat_name
         preis_kg = info['preis_kg'] if info else 0.0
+        if canon not in merged:
+            merged[canon] = {'gramm': 0.0, 'preis_kg': preis_kg}
+        merged[canon]['gramm'] += gramm
+
+    rows = []
+    gesamt_kosten = 0.0
+    for canon in sorted(merged.keys()):
+        gramm    = merged[canon]['gramm']
+        preis_kg = merged[canon]['preis_kg']
+        kg       = gramm / 1000.0
         kosten   = kg * preis_kg
         gesamt_kosten += kosten
         kg_str     = '{:.2f} kg'.format(round(kg, 2)) if kg >= 0.1 else '{:.0f} g'.format(gramm)
@@ -1261,7 +1338,7 @@ def erstelle_html_einkaufsliste(tag, zutaten, preise):
             '<tr><td class="z-name">{}</td>'
             '<td class="z-menge">{}</td>'
             '<td class="z-kosten">{}</td></tr>'.format(
-                zutat_name, kg_str, kosten_str
+                canon, kg_str, kosten_str
             )
         )
 
@@ -1738,8 +1815,8 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
             )
             res=murt.get("kk_montag_reserve",0)
             if res:
-                portionen_html+='<li><span class="zutat">{}x Murbeteig rund (fuer naechsten Montag)</span><span class="menge">{}g</span></li>'.format(
-                    res,res*MURBETEIG_PORTIONEN["Murbeteig rund"])
+                portionen_html+='<li><span class="zutat">{}x Mürbeteig rund (fuer naechsten Montag)</span><span class="menge">{}g</span></li>'.format(
+                    res,res*MURBETEIG_PORTIONEN.get("Mürbeteig rund", 180))
             inhalt+=(
                 '<div class="task special">'
                 '<div class="task-header">Muerbeteig backen &mdash; alle Boeden heute</div>'
@@ -2043,6 +2120,7 @@ def main():
     print("="*40)
     print("Lade Konfiguration...")
     lade_konfiguration()
+    _init_murbeteig()
     print("Lade Rezepte...")
     rezepte=lade_alle_rezepte()
     print("  {} Rezepte geladen: {}".format(len(rezepte),list(rezepte.keys())))
@@ -2057,44 +2135,24 @@ def main():
     lager=lese_lagerbestand()
     print("  Lager: {}".format(lager))
     print("Berechne Wochenbedarf...")
-    c2_erledigt = cafe2_bereits_abgeholt()
-    if c2_erledigt:
-        print("  Cafe-2-Abholung bereits erledigt — Lager ist post-Abgabe")
-    bedarf=berechne_wochenbedarf(verkauf,lager,cafe2_erledigt=c2_erledigt)
-    print("Berechne Muerbeteig...")
-    murt=berechne_murbeteig(bedarf)
-    vtage = ab_heute_tage()
-    ist_midweek = vtage != list(ARBEITSTAGE)
-    if ist_midweek:
-        print("  Ab-heute Modus: plane ab {} ({} Tage)".format(vtage[0], len(vtage)))
+    bedarf=berechne_wochenbedarf(verkauf)
+    print("  Bedarf: {}".format(bedarf))
     print("Erstelle Wochenplan...")
-    wplan=erstelle_wochenplan(bedarf,murt,rezepte,sub_rezepte,verbleibende_tage=vtage)
-    print("Berechne Rolling Inventory...")
-    rolling, tages_info, engpaesse = berechne_rolling_inventory(bedarf, lager, wplan)
-    if engpaesse:
-        print("  !! ENGPAESSE ERKANNT:")
-        for tag, key, bestand in engpaesse:
-            print("     {} - {}: {:.1f} Stk (Lager leer!)".format(tag, key, bestand))
-    else:
-        print("  Lagerbestand OK fuer alle Tage")
-    if ist_midweek:
-        wplan = frage_vorbereitungen(bedarf, wplan, vtage, sub_rezepte)
-        # Rolling Inventory mit ggf. angepasstem wplan neu berechnen
-        rolling, tages_info, engpaesse = berechne_rolling_inventory(bedarf, lager, wplan)
-    print("\nErstelle Ausgabedateien...")
-    erstelle_excel(bedarf,murt,wplan)
-    erstelle_html_wochenuebersicht(bedarf,murt,wplan,rolling,tages_info)
-    erstelle_html_bestellliste(bedarf,wplan,vtage,verkauf,lager,
-                               rezepte,sub_rezepte,preise)
-    for tag in vtage:
-        erstelle_html(tag,wplan.get(tag,[]),murt,rezepte,sub_rezepte,
-                      lager_info=tages_info.get(tag), ist_heut=ist_midweek, preise=preise)
-    print("\n"+"="*40+"  WOCHENBEDARF:")
-    for key,bd in bedarf.items():
-        s="-> {} Stk".format(bd["zu_produzieren"]) if bd["zu_produzieren"]>0 else "-> Lager reicht"
-        print("  {}: {}".format(key,s))
-        if bd.get("grund"): print("     {}".format(bd["grund"]))
-    print("\nMuerbeteig: {}x Grundrezept ({:.0f}g)".format(murt["grundrezepte"],murt["gesamt_gramm"]))
-    print("Fertig! Ordner: {}".format(OUTPUT_PFAD))
+    vtage,wplan=erstelle_wochenplan(bedarf,lager,rezepte,sub_rezepte)
+    print("Schreibe Excel...")
+    schreibe_excel(wplan,vtage)
+    print("Erstelle HTML Bestellliste...")
+    erstelle_html_bestellliste(bedarf,wplan,vtage,verkauf,lager,rezepte,sub_rezepte,preise)
+    print("Erstelle HTML Tagesplaene...")
+    for tag,aufgaben in wplan.items():
+        ist_heut=tag==vtage[0] if vtage else False
+        lager_info=berechne_lager_info(tag,wplan,lager,bedarf)
+        murt=berechne_murt_info(tag,wplan)
+        erstelle_html(tag,aufgaben,murt,rezepte,sub_rezepte=sub_rezepte,
+                      lager_info=lager_info,ist_heut=ist_heut,preise=preise)
+    print("Erstelle HTML Wochenuebersicht...")
+    erstelle_html_wochenuebersicht(wplan,vtage,lager,bedarf)
+    print("\nFertig!")
 
-main()
+if __name__=="__main__":
+    main()
