@@ -1,0 +1,6 @@
+{
+  "_format_version": 1,
+  "_beschreibung": "Wochenhistorie der tatsaechlichen Verkaufsmengen. Der Planer berechnet daraus per EWMA (alpha=0.3) den Forecast. Wenn wochen leer ist, faellt der Planer zurueck auf Verkaufszahlen1.xlsx. Wird automatisch von System/check_and_plan.py bei jedem Montag-Lauf aktualisiert.",
+  "_alpha": 0.3,
+  "wochen": []
+}
