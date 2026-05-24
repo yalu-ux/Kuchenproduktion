@@ -2734,7 +2734,12 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
         cls = "tab-btn active" if tab_id == aktueller_tab else "tab-btn"
         html_out.append('<button class="{}" data-tab="{}" onclick="showTab(\'{}\')">{}</button>'.format(cls, tab_id, tab_id, label))
     html_out.append('</div>')
-    html_out.append('<div class="dash-meta">Stand: {}</div>'.format(datetime.now().strftime("%d.%m.%Y %H:%M")))
+    html_out.append('<div class="dash-meta">'
+                    'Stand: {} &nbsp;&middot;&nbsp; '
+                    '<a href="../eingabe.html" '
+                    'style="color:#2E75B6;text-decoration:none;font-weight:600">'
+                    '&#9998; Lager eintragen</a>'
+                    '</div>'.format(datetime.now().strftime("%d.%m.%Y %H:%M")))
 
     # Panels
     for tab_id, label, body in panels:
