@@ -317,7 +317,7 @@ function renderPlans() {
             </a>`;
   }).join('') + `<a class="plan-link" style="background:#2E75B6;color:#fff;flex:1 1 45%;justify-content:center;gap:6px"
       href="${base}/Wochenplan/Dashboard.html" target="_blank">
-      📅 <span>Dashboard</span>
+      📋 <span>Dashboard</span>
     </a>` + `<a class="plan-link" style="background:#1a6b3a;color:#fff;flex:1 1 45%;justify-content:center;gap:6px"
       href="${base}/Wochenplan/Bestellliste.html" target="_blank">
       🛒 <span>Bestellliste</span>
@@ -425,12 +425,14 @@ async function speichern() {
       throw new Error(err.message || 'Fehler beim Speichern');
     }
 
-    setStatus('success', '✅ Gespeichert! Plan wird in ~2 Minuten aktualisiert.');
+    setStatus('success', '✅ Gespeichert! Weiterleitung zum Dashboard...');
     document.getElementById('lastUpdate').textContent =
       'Zuletzt aktualisiert: ' + new Date().toLocaleString('de-DE');
 
-    // Nach 3 Min automatisch Seite neu laden (Plan ist dann fertig)
-    setTimeout(() => { setStatus('info', '🔄 Plan sollte fertig sein — Pläne oben öffnen!'); }, 120000);
+    // Nach 2 Sek automatisch zum Dashboard wechseln (Plan rechnet im Hintergrund weiter)
+    setTimeout(() => {
+      window.location.href = getPagesBase() + '/Wochenplan/Dashboard.html?v=' + Date.now();
+    }, 2000);
 
   } catch(e) {
     setStatus('error', '⚠️ Fehler: ' + e.message);
@@ -473,6 +475,4 @@ function saveSettings() {
 // ── Init ─────────────────────────────────────────────────────
 renderPlans();
 ladeLager();
-</script>
-</body>
-</html>
+</script
