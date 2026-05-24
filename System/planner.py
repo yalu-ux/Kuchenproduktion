@@ -2064,7 +2064,12 @@ def erstelle_html_wochenuebersicht(bedarf, murt, wplan, rolling, tages_info):
     html.append('</style></head><body>')
 
     html.append('<div class="header"><h1>&#128197; Wochenuebersicht</h1>')
-    html.append('<div class="sub">Stand: {}</div></div>'.format(datetime.now().strftime("%d.%m.%Y %H:%M")))
+   html_out.append('<div class="dash-meta">'
+                       'Stand: {} &nbsp;&middot;&nbsp; '
+                       '<a href="../eingabe.html" '
+                       'style="color:#2E75B6;text-decoration:none;font-weight:600">'
+                       '&#9998; Lager eintragen</a>'
+                       '</div>'.format(datetime.now().strftime("%d.%m.%Y %H:%M")))
 
     # Forecast-Status: zeigt ob Bedarf aus Historie oder statisch
     _hist = lese_verkaufshistorie()
