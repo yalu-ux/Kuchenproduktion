@@ -39,6 +39,6 @@ jobs:
         run: |
           git config user.name "Kuchenplaner"
           git config user.email "planer@kuchenproduktion.local"
-          # Wochenplan + Auto-Archivierung + Forecast-Historie
-          git add Wochenplan/ System/lager_archiv/ Verkaufshistorie.json
-          gi
+          git add Wochenplan/ || true
+          git add Verkaufshistorie.json || true
+          if [ -d System/lager_archiv ]; then git add System/l
