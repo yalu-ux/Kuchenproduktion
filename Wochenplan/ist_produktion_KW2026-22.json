@@ -1,0 +1,13 @@
+{
+  "kw": "2026-22",
+  "_format": 1,
+  "_updated": "2026-05-25T20:24:40.736Z",
+  "tage": {
+    "Montag": {
+      "Kaesekuchen": {
+        "ist_menge": 4,
+        "erledigt": true
+      }
+    }
+  }
+}
