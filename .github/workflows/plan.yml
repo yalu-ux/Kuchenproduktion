@@ -7,6 +7,7 @@ on:
       - 'lagerbestand.json'
       - 'Verkaufszahlen1.xlsx'
       - 'System/planner.py'
+      - 'System/lerne_woche.py'
       - 'Kalkulation/Preise.xlsx'
 
 permissions:
@@ -15,12 +16,17 @@ permissions:
 jobs:
   planung:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - name: Python einrichten
         uses: actions/setup-python@v5
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           python-version: '3.11'
 
@@ -34,8 +40,12 @@ jobs:
         run: |
           git config user.name "Kuchenplaner"
           git config user.email "planer@kuchenproduktion.local"
-          git add -A Wochenplan/ System/lager_archiv/ Verkaufshistorie.json 2>/dev/null || true
-          if ! git diff --staged --quiet; then
+          git add Wochenplan/ || true
+          git add Verkaufshistorie.json || true
+          if [ -d System/lager_archiv ]; then git add System/lager_archiv/ || true; fi
+          if git diff --staged --quiet; then
+            echo "Keine Aenderungen zu committen."
+          else
             git commit -m "Wochenplan $(date '+%d.%m.%Y %H:%M')"
             git push
           fi
