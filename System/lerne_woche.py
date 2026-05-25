@@ -26,6 +26,7 @@ from datetime import datetime
 BASE = Path(__file__).parent.parent
 LAGER_JSON = BASE / "lagerbestand.json"
 HISTORIE   = BASE / "Verkaufshistorie.json"
+IST_DIR    = BASE / "Wochenplan"
 
 PRODUKTE = [
     "Beeren Tartelette","Bienenstich","Donauwelle",
@@ -60,7 +61,8 @@ def lade_json(pfad):
 
 
 def lese_produktion_aus_excel(pfad):
-    """Liest die Spalte 'Produzieren' aus Wochenuebersicht_*.xlsx."""
+    """Liest die Spalte 'Produzieren' aus Wochenuebersicht_*.xlsx (Fallback,
+    wenn keine ist_produktion_KW*.json vorhanden)."""
     import openpyxl
     wb = openpyxl.load_workbook(str(pfad), data_only=True)
     ws = wb.active
@@ -80,6 +82,61 @@ def lese_produktion_aus_excel(pfad):
         if produkt in PRODUKTE:
             produktion[produkt] = menge
     return produktion
+
+
+def lese_produktion_aus_ist(kw_label):
+    """Liest die tatsaechlich produzierte Menge aus ist_produktion_KW*.json.
+    Erwartet kw_label im Format 'YYYY-WW'.
+
+    JSON-Schema:
+      { "kw": "2026-21", "tage": {
+          "Montag":  { "Kaesekuchen": { "ist_menge": 2, "erledigt": true,
+                                        "verschoben_nach": null } },
+          ...
+      }}
+
+    Verschiebungen werden korrekt mitgeloest:
+      - Eintrag mit "verschoben_nach": X  ->  zaehlt NICHT an seinem Tag.
+      - Eintrag mit "verschoben_von": Y   ->  zaehlt am Verschiebungs-Zieltag.
+    Da die Wochensumme das einzige ist was lerne_woche.py braucht, ist die
+    Tageverteilung egal — wir summieren ueber alle nicht-verschobenen
+    Eintraege (oder mit "erledigt": true) und ueber zugezogene Eintraege.
+
+    Returns:
+        ({"Kaesekuchen": 4.0, ...}, anzahl_eintraege) oder (None, 0) wenn
+        Datei nicht existiert.
+    """
+    pfad = IST_DIR / "ist_produktion_KW{}.json".format(kw_label)
+    if not pfad.exists():
+        return None, 0
+    try:
+        data = lade_json(pfad)
+    except SystemExit:
+        return None, 0
+    produktion = {pk: 0.0 for pk in PRODUKTE}
+    eintraege = 0
+    for tag, pks in (data.get("tage") or {}).items():
+        for pk, rec in (pks or {}).items():
+            if pk not in PRODUKTE:
+                continue  # Hilfs-Tasks (_mt_ansetzen etc.) ignorieren
+            # Wenn auf anderen Tag verschoben: hier nicht zaehlen
+            if rec.get("verschoben_nach"):
+                continue
+            # ist_menge ueberschreibt Plan; nur zaehlen wenn erledigt oder ist_menge>0
+            ist = rec.get("ist_menge")
+            if ist is None:
+                # Kein expliziter Edit: nur wenn als erledigt markiert, zaehlen wir
+                # die Planmenge (kennen wir hier aber nicht). Konservativ: 0.
+                # Der Planer fuellt erledigte-Default-Mengen via JS bereits.
+                if rec.get("erledigt"):
+                    pass  # bleibt 0 wenn ist_menge fehlt
+                continue
+            try:
+                produktion[pk] += float(ist)
+                eintraege += 1
+            except (TypeError, ValueError):
+                pass
+    return produktion, eintraege
 
 
 def berechne_woche(alt_lager, neu_lager, produktion):
@@ -120,9 +177,6 @@ def main():
 
     alt_lager  = lade_json(args.altlager)
     neu_lager  = lade_json(LAGER_JSON)
-    produktion = lese_produktion_aus_excel(args.plan)
-
-    woche = berechne_woche(alt_lager, neu_lager, produktion)
 
     if args.kw:
         kw = args.kw
@@ -130,10 +184,26 @@ def main():
         iso = datetime.now().isocalendar()
         kw = "{}-{:02d}".format(iso[0], iso[1] - 1 if iso[1] > 1 else 52)
 
+    # Bevorzugte Quelle: ist_produktion_KW*.json (echte produzierte Mengen
+    # aus den Tagesplan-Häkchen). Fallback: Plan-Spalte aus xlsx.
+    quelle = "plan-xlsx"
+    produktion, anz = lese_produktion_aus_ist(kw)
+    if produktion is not None and anz > 0:
+        quelle = "ist-produktion-json"
+        print("Quelle: ist_produktion_KW{}.json ({} Eintraege)".format(kw, anz))
+    else:
+        if produktion is not None:
+            print("Hinweis: ist_produktion_KW{}.json existiert, aber leer -> Fallback xlsx".format(kw))
+        produktion = lese_produktion_aus_excel(args.plan)
+        print("Quelle: {} (Fallback - Plan, nicht Ist!)".format(Path(args.plan).name))
+
+    woche = berechne_woche(alt_lager, neu_lager, produktion)
+
     eintrag = {
         "kw":  kw,
         "abgeleitet_am": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "quelle": "lager-differenz",
+        "produktions_quelle": quelle,
         "verkauf": woche,
     }
 
