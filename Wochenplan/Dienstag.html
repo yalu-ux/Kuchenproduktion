@@ -287,7 +287,12 @@ async function _doSaveIst(){
   }
 }
 
-document.addEventListener('DOMContentLoaded',function(){
+function _initOnce(){
+  // Idempotent: in Dashboard.html laeuft das Script einmal pro Tab —
+  // dieser Guard verhindert, dass jeder Task 5x Buttons bekommt.
+  if(window.__ip_init_done) return;
+  window.__ip_init_done = true;
+
   // Status-Indikator
   var status=document.createElement('div');
   status.id='ip-status';
@@ -295,10 +300,13 @@ document.addEventListener('DOMContentLoaded',function(){
   status.textContent='Verbinde...';
   var h1=document.querySelector('h1');
   if(h1 && h1.parentNode){h1.parentNode.insertBefore(status,h1.nextSibling);}
-  // Tasks mit Buttons + Panel ausstatten
+
+  // Tasks mit Buttons + Panel ausstatten — Doppelt-Init pro Karte verhindern
   document.querySelectorAll('.task[data-tag][data-key]').forEach(function(el){
+    if(el.dataset.ipReady==='1') return;
+    el.dataset.ipReady='1';
     var hdr=el.querySelector('.task-header');
-    if(hdr){
+    if(hdr && !hdr.querySelector('.done-btn')){
       var dbtn=document.createElement('button');
       dbtn.className='done-btn';dbtn.title='Erledigt';dbtn.innerHTML='&#10003;';
       dbtn.onclick=function(e){markDone(e,dbtn);};
@@ -313,23 +321,35 @@ document.addEventListener('DOMContentLoaded',function(){
         hdr.appendChild(dbtn);hdr.appendChild(gbtn);
       }
     }
-    var panel=document.createElement('div');
-    panel.className='gear-panel';
-    panel.style.display='none';
-    panel.onclick=function(e){e.stopPropagation();};
-    var planM=el.dataset.planMenge||'0';
-    var curTag=el.dataset.tag;
-    var dayOpts=DAYS.map(function(d){
-      return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
-    }).join('');
-    panel.innerHTML=
-      '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
-      '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
-      '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
-      '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
-    el.appendChild(panel);
+    if(!el.querySelector('.gear-panel')){
+      var panel=document.createElement('div');
+      panel.className='gear-panel';
+      panel.style.display='none';
+      panel.onclick=function(e){e.stopPropagation();};
+      var planM=el.dataset.planMenge||'0';
+      var curTag=el.dataset.tag;
+      var dayOpts=DAYS.map(function(d){
+        return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
+      }).join('');
+      panel.innerHTML=
+        '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
+        '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
+        '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
+        '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
+      // Panel oben in den Task-Body — direkt unter dem Header,
+      // damit das Rezept nach unten rutscht und nicht uebersprungen werden muss.
+      var body=el.querySelector('.task-body');
+      if(body){ body.insertBefore(panel, body.firstChild); }
+      else{ el.appendChild(panel); }
+    }
   });
   loadIst();
-});
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',_initOnce);
+}else{
+  _initOnce();
+}
 })();
 </script></body></html>

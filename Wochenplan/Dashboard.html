@@ -57,9 +57,9 @@ body{font-family:sans-serif;padding:16px;max-width:960px;margin:0 auto;backgroun
 <button class="tab-btn" data-tab="fr" onclick="showTab('fr')">Fr</button>
 <button class="tab-btn" data-tab="bestell" onclick="showTab('bestell')">&#128722; Einkauf</button>
 </div>
-<div class="dash-meta">Stand: 25.05.2026 20:16 &nbsp;&middot;&nbsp; <a href="../eingabe.html" style="color:#2E75B6;text-decoration:none;font-weight:600">&#9998; Lager eintragen</a></div>
+<div class="dash-meta">Stand: 25.05.2026 20:30 &nbsp;&middot;&nbsp; <a href="../eingabe.html" style="color:#2E75B6;text-decoration:none;font-weight:600">&#9998; Lager eintragen</a></div>
 <div class="panel" id="panel-ueber"><div class="header"><h1>&#128197; Wochenuebersicht</h1>
-<div class="sub">Stand: 25.05.2026 20:16</div></div>
+<div class="sub">Stand: 25.05.2026 20:30</div></div>
 <div style="margin:10px 12px 0;padding:6px 12px;background:#FFF4D4;color:#8A6D1F;border-radius:8px;font-size:11px;font-weight:600">&#128221; Statische Verkaufszahlen — noch keine Historie. Mit <code>System/lerne_woche.py</code> Wochen einlernen.</div>
 <div class="matrix">
 <div class="matrix-title">&#128202; Chargen-Verteilung</div>
@@ -640,7 +640,12 @@ async function _doSaveIst(){
   }
 }
 
-document.addEventListener('DOMContentLoaded',function(){
+function _initOnce(){
+  // Idempotent: in Dashboard.html laeuft das Script einmal pro Tab —
+  // dieser Guard verhindert, dass jeder Task 5x Buttons bekommt.
+  if(window.__ip_init_done) return;
+  window.__ip_init_done = true;
+
   // Status-Indikator
   var status=document.createElement('div');
   status.id='ip-status';
@@ -648,10 +653,13 @@ document.addEventListener('DOMContentLoaded',function(){
   status.textContent='Verbinde...';
   var h1=document.querySelector('h1');
   if(h1 && h1.parentNode){h1.parentNode.insertBefore(status,h1.nextSibling);}
-  // Tasks mit Buttons + Panel ausstatten
+
+  // Tasks mit Buttons + Panel ausstatten — Doppelt-Init pro Karte verhindern
   document.querySelectorAll('.task[data-tag][data-key]').forEach(function(el){
+    if(el.dataset.ipReady==='1') return;
+    el.dataset.ipReady='1';
     var hdr=el.querySelector('.task-header');
-    if(hdr){
+    if(hdr && !hdr.querySelector('.done-btn')){
       var dbtn=document.createElement('button');
       dbtn.className='done-btn';dbtn.title='Erledigt';dbtn.innerHTML='&#10003;';
       dbtn.onclick=function(e){markDone(e,dbtn);};
@@ -666,24 +674,36 @@ document.addEventListener('DOMContentLoaded',function(){
         hdr.appendChild(dbtn);hdr.appendChild(gbtn);
       }
     }
-    var panel=document.createElement('div');
-    panel.className='gear-panel';
-    panel.style.display='none';
-    panel.onclick=function(e){e.stopPropagation();};
-    var planM=el.dataset.planMenge||'0';
-    var curTag=el.dataset.tag;
-    var dayOpts=DAYS.map(function(d){
-      return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
-    }).join('');
-    panel.innerHTML=
-      '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
-      '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
-      '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
-      '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
-    el.appendChild(panel);
+    if(!el.querySelector('.gear-panel')){
+      var panel=document.createElement('div');
+      panel.className='gear-panel';
+      panel.style.display='none';
+      panel.onclick=function(e){e.stopPropagation();};
+      var planM=el.dataset.planMenge||'0';
+      var curTag=el.dataset.tag;
+      var dayOpts=DAYS.map(function(d){
+        return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
+      }).join('');
+      panel.innerHTML=
+        '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
+        '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
+        '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
+        '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
+      // Panel oben in den Task-Body — direkt unter dem Header,
+      // damit das Rezept nach unten rutscht und nicht uebersprungen werden muss.
+      var body=el.querySelector('.task-body');
+      if(body){ body.insertBefore(panel, body.firstChild); }
+      else{ el.appendChild(panel); }
+    }
   });
   loadIst();
-});
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',_initOnce);
+}else{
+  _initOnce();
+}
 })();
 </script></div>
 <div class="panel" id="panel-di"><h1>Dienstag</h1><div class="datum">KW 22 &middot; 25.05.2026</div>
@@ -972,7 +992,12 @@ async function _doSaveIst(){
   }
 }
 
-document.addEventListener('DOMContentLoaded',function(){
+function _initOnce(){
+  // Idempotent: in Dashboard.html laeuft das Script einmal pro Tab —
+  // dieser Guard verhindert, dass jeder Task 5x Buttons bekommt.
+  if(window.__ip_init_done) return;
+  window.__ip_init_done = true;
+
   // Status-Indikator
   var status=document.createElement('div');
   status.id='ip-status';
@@ -980,10 +1005,13 @@ document.addEventListener('DOMContentLoaded',function(){
   status.textContent='Verbinde...';
   var h1=document.querySelector('h1');
   if(h1 && h1.parentNode){h1.parentNode.insertBefore(status,h1.nextSibling);}
-  // Tasks mit Buttons + Panel ausstatten
+
+  // Tasks mit Buttons + Panel ausstatten — Doppelt-Init pro Karte verhindern
   document.querySelectorAll('.task[data-tag][data-key]').forEach(function(el){
+    if(el.dataset.ipReady==='1') return;
+    el.dataset.ipReady='1';
     var hdr=el.querySelector('.task-header');
-    if(hdr){
+    if(hdr && !hdr.querySelector('.done-btn')){
       var dbtn=document.createElement('button');
       dbtn.className='done-btn';dbtn.title='Erledigt';dbtn.innerHTML='&#10003;';
       dbtn.onclick=function(e){markDone(e,dbtn);};
@@ -998,24 +1026,36 @@ document.addEventListener('DOMContentLoaded',function(){
         hdr.appendChild(dbtn);hdr.appendChild(gbtn);
       }
     }
-    var panel=document.createElement('div');
-    panel.className='gear-panel';
-    panel.style.display='none';
-    panel.onclick=function(e){e.stopPropagation();};
-    var planM=el.dataset.planMenge||'0';
-    var curTag=el.dataset.tag;
-    var dayOpts=DAYS.map(function(d){
-      return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
-    }).join('');
-    panel.innerHTML=
-      '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
-      '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
-      '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
-      '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
-    el.appendChild(panel);
+    if(!el.querySelector('.gear-panel')){
+      var panel=document.createElement('div');
+      panel.className='gear-panel';
+      panel.style.display='none';
+      panel.onclick=function(e){e.stopPropagation();};
+      var planM=el.dataset.planMenge||'0';
+      var curTag=el.dataset.tag;
+      var dayOpts=DAYS.map(function(d){
+        return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
+      }).join('');
+      panel.innerHTML=
+        '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
+        '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
+        '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
+        '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
+      // Panel oben in den Task-Body — direkt unter dem Header,
+      // damit das Rezept nach unten rutscht und nicht uebersprungen werden muss.
+      var body=el.querySelector('.task-body');
+      if(body){ body.insertBefore(panel, body.firstChild); }
+      else{ el.appendChild(panel); }
+    }
   });
   loadIst();
-});
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',_initOnce);
+}else{
+  _initOnce();
+}
 })();
 </script></div>
 <div class="panel" id="panel-mi"><h1>Mittwoch</h1><div class="datum">KW 22 &middot; 25.05.2026</div>
@@ -1304,7 +1344,12 @@ async function _doSaveIst(){
   }
 }
 
-document.addEventListener('DOMContentLoaded',function(){
+function _initOnce(){
+  // Idempotent: in Dashboard.html laeuft das Script einmal pro Tab —
+  // dieser Guard verhindert, dass jeder Task 5x Buttons bekommt.
+  if(window.__ip_init_done) return;
+  window.__ip_init_done = true;
+
   // Status-Indikator
   var status=document.createElement('div');
   status.id='ip-status';
@@ -1312,10 +1357,13 @@ document.addEventListener('DOMContentLoaded',function(){
   status.textContent='Verbinde...';
   var h1=document.querySelector('h1');
   if(h1 && h1.parentNode){h1.parentNode.insertBefore(status,h1.nextSibling);}
-  // Tasks mit Buttons + Panel ausstatten
+
+  // Tasks mit Buttons + Panel ausstatten — Doppelt-Init pro Karte verhindern
   document.querySelectorAll('.task[data-tag][data-key]').forEach(function(el){
+    if(el.dataset.ipReady==='1') return;
+    el.dataset.ipReady='1';
     var hdr=el.querySelector('.task-header');
-    if(hdr){
+    if(hdr && !hdr.querySelector('.done-btn')){
       var dbtn=document.createElement('button');
       dbtn.className='done-btn';dbtn.title='Erledigt';dbtn.innerHTML='&#10003;';
       dbtn.onclick=function(e){markDone(e,dbtn);};
@@ -1330,24 +1378,36 @@ document.addEventListener('DOMContentLoaded',function(){
         hdr.appendChild(dbtn);hdr.appendChild(gbtn);
       }
     }
-    var panel=document.createElement('div');
-    panel.className='gear-panel';
-    panel.style.display='none';
-    panel.onclick=function(e){e.stopPropagation();};
-    var planM=el.dataset.planMenge||'0';
-    var curTag=el.dataset.tag;
-    var dayOpts=DAYS.map(function(d){
-      return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
-    }).join('');
-    panel.innerHTML=
-      '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
-      '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
-      '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
-      '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
-    el.appendChild(panel);
+    if(!el.querySelector('.gear-panel')){
+      var panel=document.createElement('div');
+      panel.className='gear-panel';
+      panel.style.display='none';
+      panel.onclick=function(e){e.stopPropagation();};
+      var planM=el.dataset.planMenge||'0';
+      var curTag=el.dataset.tag;
+      var dayOpts=DAYS.map(function(d){
+        return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
+      }).join('');
+      panel.innerHTML=
+        '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
+        '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
+        '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
+        '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
+      // Panel oben in den Task-Body — direkt unter dem Header,
+      // damit das Rezept nach unten rutscht und nicht uebersprungen werden muss.
+      var body=el.querySelector('.task-body');
+      if(body){ body.insertBefore(panel, body.firstChild); }
+      else{ el.appendChild(panel); }
+    }
   });
   loadIst();
-});
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',_initOnce);
+}else{
+  _initOnce();
+}
 })();
 </script></div>
 <div class="panel" id="panel-do"><h1>Donnerstag</h1><div class="datum">KW 22 &middot; 25.05.2026</div>
@@ -1636,7 +1696,12 @@ async function _doSaveIst(){
   }
 }
 
-document.addEventListener('DOMContentLoaded',function(){
+function _initOnce(){
+  // Idempotent: in Dashboard.html laeuft das Script einmal pro Tab —
+  // dieser Guard verhindert, dass jeder Task 5x Buttons bekommt.
+  if(window.__ip_init_done) return;
+  window.__ip_init_done = true;
+
   // Status-Indikator
   var status=document.createElement('div');
   status.id='ip-status';
@@ -1644,10 +1709,13 @@ document.addEventListener('DOMContentLoaded',function(){
   status.textContent='Verbinde...';
   var h1=document.querySelector('h1');
   if(h1 && h1.parentNode){h1.parentNode.insertBefore(status,h1.nextSibling);}
-  // Tasks mit Buttons + Panel ausstatten
+
+  // Tasks mit Buttons + Panel ausstatten — Doppelt-Init pro Karte verhindern
   document.querySelectorAll('.task[data-tag][data-key]').forEach(function(el){
+    if(el.dataset.ipReady==='1') return;
+    el.dataset.ipReady='1';
     var hdr=el.querySelector('.task-header');
-    if(hdr){
+    if(hdr && !hdr.querySelector('.done-btn')){
       var dbtn=document.createElement('button');
       dbtn.className='done-btn';dbtn.title='Erledigt';dbtn.innerHTML='&#10003;';
       dbtn.onclick=function(e){markDone(e,dbtn);};
@@ -1662,24 +1730,36 @@ document.addEventListener('DOMContentLoaded',function(){
         hdr.appendChild(dbtn);hdr.appendChild(gbtn);
       }
     }
-    var panel=document.createElement('div');
-    panel.className='gear-panel';
-    panel.style.display='none';
-    panel.onclick=function(e){e.stopPropagation();};
-    var planM=el.dataset.planMenge||'0';
-    var curTag=el.dataset.tag;
-    var dayOpts=DAYS.map(function(d){
-      return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
-    }).join('');
-    panel.innerHTML=
-      '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
-      '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
-      '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
-      '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
-    el.appendChild(panel);
+    if(!el.querySelector('.gear-panel')){
+      var panel=document.createElement('div');
+      panel.className='gear-panel';
+      panel.style.display='none';
+      panel.onclick=function(e){e.stopPropagation();};
+      var planM=el.dataset.planMenge||'0';
+      var curTag=el.dataset.tag;
+      var dayOpts=DAYS.map(function(d){
+        return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
+      }).join('');
+      panel.innerHTML=
+        '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
+        '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
+        '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
+        '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
+      // Panel oben in den Task-Body — direkt unter dem Header,
+      // damit das Rezept nach unten rutscht und nicht uebersprungen werden muss.
+      var body=el.querySelector('.task-body');
+      if(body){ body.insertBefore(panel, body.firstChild); }
+      else{ el.appendChild(panel); }
+    }
   });
   loadIst();
-});
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',_initOnce);
+}else{
+  _initOnce();
+}
 })();
 </script></div>
 <div class="panel" id="panel-fr"><h1>Freitag</h1><div class="datum">KW 22 &middot; 25.05.2026</div>
@@ -1968,7 +2048,12 @@ async function _doSaveIst(){
   }
 }
 
-document.addEventListener('DOMContentLoaded',function(){
+function _initOnce(){
+  // Idempotent: in Dashboard.html laeuft das Script einmal pro Tab —
+  // dieser Guard verhindert, dass jeder Task 5x Buttons bekommt.
+  if(window.__ip_init_done) return;
+  window.__ip_init_done = true;
+
   // Status-Indikator
   var status=document.createElement('div');
   status.id='ip-status';
@@ -1976,10 +2061,13 @@ document.addEventListener('DOMContentLoaded',function(){
   status.textContent='Verbinde...';
   var h1=document.querySelector('h1');
   if(h1 && h1.parentNode){h1.parentNode.insertBefore(status,h1.nextSibling);}
-  // Tasks mit Buttons + Panel ausstatten
+
+  // Tasks mit Buttons + Panel ausstatten — Doppelt-Init pro Karte verhindern
   document.querySelectorAll('.task[data-tag][data-key]').forEach(function(el){
+    if(el.dataset.ipReady==='1') return;
+    el.dataset.ipReady='1';
     var hdr=el.querySelector('.task-header');
-    if(hdr){
+    if(hdr && !hdr.querySelector('.done-btn')){
       var dbtn=document.createElement('button');
       dbtn.className='done-btn';dbtn.title='Erledigt';dbtn.innerHTML='&#10003;';
       dbtn.onclick=function(e){markDone(e,dbtn);};
@@ -1994,24 +2082,36 @@ document.addEventListener('DOMContentLoaded',function(){
         hdr.appendChild(dbtn);hdr.appendChild(gbtn);
       }
     }
-    var panel=document.createElement('div');
-    panel.className='gear-panel';
-    panel.style.display='none';
-    panel.onclick=function(e){e.stopPropagation();};
-    var planM=el.dataset.planMenge||'0';
-    var curTag=el.dataset.tag;
-    var dayOpts=DAYS.map(function(d){
-      return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
-    }).join('');
-    panel.innerHTML=
-      '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
-      '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
-      '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
-      '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
-    el.appendChild(panel);
+    if(!el.querySelector('.gear-panel')){
+      var panel=document.createElement('div');
+      panel.className='gear-panel';
+      panel.style.display='none';
+      panel.onclick=function(e){e.stopPropagation();};
+      var planM=el.dataset.planMenge||'0';
+      var curTag=el.dataset.tag;
+      var dayOpts=DAYS.map(function(d){
+        return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
+      }).join('');
+      panel.innerHTML=
+        '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
+        '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
+        '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
+        '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
+      // Panel oben in den Task-Body — direkt unter dem Header,
+      // damit das Rezept nach unten rutscht und nicht uebersprungen werden muss.
+      var body=el.querySelector('.task-body');
+      if(body){ body.insertBefore(panel, body.firstChild); }
+      else{ el.appendChild(panel); }
+    }
   });
   loadIst();
-});
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',_initOnce);
+}else{
+  _initOnce();
+}
 })();
 </script></div>
 <div class="panel" id="panel-bestell"><h1>&#128230; Bestellliste KW 22</h1><div class="info">&#128197; Bestellung: Montag 25.05.2026 &nbsp;&bull;&nbsp; Lieferung: Di&ndash;Do &nbsp;&bull;&nbsp; Reicht bis: Do naechste Woche (KW 23)<br>&#128204; Nur Artikel mit <strong>Selbst bestellen</strong> (Logistiker-Artikel sind ausgeblendet)<br>&#128200; Naechste Woche: Hochrechnung aus dieser Woche (20% Puffer, Mo&ndash;Do = 4 Tage)</div><table><thead><tr><th>Zutat</th><th class="bl-num">Diese Woche</th><th class="bl-num">Naechste Woche (Mo&ndash;Do)</th><th class="bl-num">Bestellen</th><th class="bl-num">Preis / kg</th><th class="bl-num">Kosten</th></tr></thead><tbody><tr><td class="bl-name">Backpulver</td><td class="bl-num">0.01 kg</td><td class="bl-num">0.01 kg</td><td class="bl-num bl-bold">0.01 kg</td><td class="bl-num">4.20 &euro;/kg</td><td class="bl-num">0.05 &euro;</td></tr><tr><td class="bl-name">Butter</td><td class="bl-num">15.30 kg</td><td class="bl-num">14.69 kg</td><td class="bl-num bl-bold">30.00 kg</td><td class="bl-num">4.95 &euro;/kg</td><td class="bl-num">148.54 &euro;</td></tr><tr><td class="bl-name">Callebaut dark</td><td class="bl-num">2.70 kg</td><td class="bl-num">2.59 kg</td><td class="bl-num bl-bold">5.29 kg</td><td class="bl-num">16.50 &euro;/kg</td><td class="bl-num">87.32 &euro;</td></tr><tr><td class="bl-name">Dinkelmehl 630</td><td class="bl-num">5.60 kg</td><td class="bl-num">5.37 kg</td><td class="bl-num bl-bold">10.97 kg</td><td class="bl-num">2.25 &euro;/kg</td><td class="bl-num">24.69 &euro;</td></tr><tr><td class="bl-name">Eigelb</td><td class="bl-num">3.58 kg</td><td class="bl-num">3.44 kg</td><td class="bl-num bl-bold">7.02 kg</td><td class="bl-num">12.25 &euro;/kg</td><td class="bl-num">85.96 &euro;</td></tr><tr><td class="bl-name">Eiklar</td><td class="bl-num">5.78 kg</td><td class="bl-num">5.55 kg</td><td class="bl-num bl-bold">11.33 kg</td><td class="bl-num">3.76 &euro;/kg</td><td class="bl-num">42.60 &euro;</td></tr><tr><td class="bl-name">Gelatine</td><td class="bl-num">0.04 kg</td><td class="bl-num">0.04 kg</td><td class="bl-num bl-bold">0.07 kg</td><td class="bl-num">38.95 &euro;/kg</td><td class="bl-num">2.86 &euro;</td></tr><tr><td class="bl-name">Glukose</td><td class="bl-num">0.42 kg</td><td class="bl-num">0.40 kg</td><td class="bl-num bl-bold">0.82 kg</td><td class="bl-num">3.99 &euro;/kg</td><td class="bl-num">3.28 &euro;</td></tr><tr><td class="bl-name">Hefe</td><td class="bl-num">0.49 kg</td><td class="bl-num">0.47 kg</td><td class="bl-num bl-bold">0.95 kg</td><td class="bl-num">5.00 &euro;/kg</td><td class="bl-num">4.76 &euro;</td></tr><tr><td class="bl-name">Honig</td><td class="bl-num">0.72 kg</td><td class="bl-num">0.69 kg</td><td class="bl-num bl-bold">1.41 kg</td><td class="bl-num">6.10 &euro;/kg</td><td class="bl-num">8.61 &euro;</td></tr><tr><td class="bl-name">Kirsch Boiron</td><td class="bl-num">0.15 kg</td><td class="bl-num">0.14 kg</td><td class="bl-num bl-bold">0.29 kg</td><td class="bl-num">16.80 &euro;/kg</td><td class="bl-num">4.94 &euro;</td></tr><tr><td class="bl-name">Lauch</td><td class="bl-num">3.60 kg</td><td class="bl-num">3.46 kg</td><td class="bl-num bl-bold">7.06 kg</td><td class="bl-num">1.33 &euro;/kg</td><td class="bl-num">9.38 &euro;</td></tr><tr><td class="bl-name">Magerquark</td><td class="bl-num">28.96 kg</td><td class="bl-num">27.80 kg</td><td class="bl-num bl-bold">56.76 kg</td><td class="bl-num">1.84 &euro;/kg</td><td class="bl-num">104.43 &euro;</td></tr><tr><td class="bl-name">Maisstärke</td><td class="bl-num">3.23 kg</td><td class="bl-num">3.10 kg</td><td class="bl-num bl-bold">6.33 kg</td><td class="bl-num">4.78 &euro;/kg</td><td class="bl-num">30.26 &euro;</td></tr><tr><td class="bl-name">Mandelmehl</td><td class="bl-num">0.30 kg</td><td class="bl-num">0.29 kg</td><td class="bl-num bl-bold">0.59 kg</td><td class="bl-num">14.55 &euro;/kg</td><td class="bl-num">8.56 &euro;</td></tr><tr><td class="bl-name">Mandeln gehobelt</td><td class="bl-num">1.74 kg</td><td class="bl-num">1.67 kg</td><td class="bl-num bl-bold">3.41 kg</td><td class="bl-num">13.90 &euro;/kg</td><td class="bl-num">47.40 &euro;</td></tr><tr><td class="bl-name">Milch</td><td class="bl-num">21.24 kg</td><td class="bl-num">20.39 kg</td><td class="bl-num bl-bold">41.63 kg</td><td class="bl-num">0.99 &euro;/kg</td><td class="bl-num">41.05 &euro;</td></tr><tr><td class="bl-name">Sahne</td><td class="bl-num">9.43 kg</td><td class="bl-num">9.05 kg</td><td class="bl-num bl-bold">18.48 kg</td><td class="bl-num">3.10 &euro;/kg</td><td class="bl-num">57.28 &euro;</td></tr><tr><td class="bl-name">Salz</td><td class="bl-num">0.42 kg</td><td class="bl-num">0.40 kg</td><td class="bl-num bl-bold">0.82 kg</td><td class="bl-num">0.28 &euro;/kg</td><td class="bl-num">0.23 &euro;</td></tr><tr><td class="bl-name">Sauerkirschen</td><td class="bl-num">7.20 kg</td><td class="bl-num">6.91 kg</td><td class="bl-num bl-bold">14.11 kg</td><td class="bl-num">11.62 &euro;/kg</td><td class="bl-num">164.01 &euro;</td></tr><tr><td class="bl-name">Saure Sahne</td><td class="bl-num">18.00 kg</td><td class="bl-num">17.28 kg</td><td class="bl-num bl-bold">35.28 kg</td><td class="bl-num">1.83 &euro;/kg</td><td class="bl-num">64.70 &euro;</td></tr><tr><td class="bl-name">Schmand</td><td class="bl-num">11.60 kg</td><td class="bl-num">11.14 kg</td><td class="bl-num bl-bold">22.74 kg</td><td class="bl-num">3.15 &euro;/kg</td><td class="bl-num">71.57 &euro;</td></tr><tr><td class="bl-name">Speck</td><td class="bl-num">2.70 kg</td><td class="bl-num">2.59 kg</td><td class="bl-num bl-bold">5.29 kg</td><td class="bl-num">13.40 &euro;/kg</td><td class="bl-num">70.91 &euro;</td></tr><tr><td class="bl-name">Vanillearoma</td><td class="bl-num">0.07 kg</td><td class="bl-num">0.07 kg</td><td class="bl-num bl-bold">0.14 kg</td><td class="bl-num">20.00 &euro;/kg</td><td class="bl-num">2.70 &euro;</td></tr><tr><td class="bl-name">Vanillezucker</td><td class="bl-num">0.25 kg</td><td class="bl-num">0.24 kg</td><td class="bl-num bl-bold">0.49 kg</td><td class="bl-num">51.78 &euro;/kg</td><td class="bl-num">25.58 &euro;</td></tr><tr><td class="bl-name">Vollei</td><td class="bl-num">11.98 kg</td><td class="bl-num">11.50 kg</td><td class="bl-num bl-bold">23.48 kg</td><td class="bl-num">5.76 &euro;/kg</td><td class="bl-num">135.23 &euro;</td></tr><tr><td class="bl-name">Weizenmehl</td><td class="bl-num">14.09 kg</td><td class="bl-num">13.52 kg</td><td class="bl-num bl-bold">27.61 kg</td><td class="bl-num">0.70 &euro;/kg</td><td class="bl-num">19.32 &euro;</td></tr><tr><td class="bl-name">Weizenstärke</td><td class="bl-num">0.89 kg</td><td class="bl-num">0.85 kg</td><td class="bl-num bl-bold">1.73 kg</td><td class="bl-num">5.14 &euro;/kg</td><td class="bl-num">8.92 &euro;</td></tr><tr><td class="bl-name">Zitronenaroma</td><td class="bl-num">0.08 kg</td><td class="bl-num">0.08 kg</td><td class="bl-num bl-bold">0.16 kg</td><td class="bl-num">20.00 &euro;/kg</td><td class="bl-num">3.27 &euro;</td></tr><tr><td class="bl-name">Zucker</td><td class="bl-num">15.29 kg</td><td class="bl-num">14.68 kg</td><td class="bl-num bl-bold">29.97 kg</td><td class="bl-num">0.89 &euro;/kg</td><td class="bl-num">26.67 &euro;</td></tr><tr><td class="bl-name">Öl</td><td class="bl-num">0.21 kg</td><td class="bl-num">0.20 kg</td><td class="bl-num bl-bold">0.41 kg</td><td class="bl-num">1.78 &euro;/kg</td><td class="bl-num">0.73 &euro;</td></tr></tbody><tfoot><tr class="total-row"><td colspan="5">Gesamtkosten (Selbst bestellen)</td><td class="bl-num">1305.81&nbsp;&euro;</td></tr></tfoot></table><div class="footer">Kuchenproduktion &middot; KW 22</div></div>
