@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Kuchenproduktion Wochenplaner"""
 import struct, zlib, xml.etree.ElementTree as ET
-import openpyxl, math, re
+import openpyxl, math, re, json
 from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
@@ -2291,45 +2291,83 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
     gesamt_aktiv  = sum(a.get("aktiv_min",0)  for a in aufgaben_html if not a.get("excel_only"))
     gesamt_passiv = sum(a.get("passiv_min",0) for a in aufgaben_html if not a.get("excel_only"))
 
-    # Sammle Pro-Tag-Mengen pro Produkt (fuer Rezept-Skalierung)
-    tagesmengen=defaultdict(int)
-    for a in aufgaben_html:
-        if a.get("produkt_key") and a["menge"]>0 and not a.get("excel_only"):
-            tagesmengen[a["produkt_key"]]+=int(a["menge"])
+    # ---- Tasks zu Gruppen zusammenfassen (1 Karte pro Produkt pro Tag) ----
+    def _group_key_for(a):
+        p_up = (a.get("produkt") or "").upper()
+        if "MUERBETEIG ANSETZEN" in p_up: return "_mt_ansetzen"
+        if "MUERBETEIG BACKEN"   in p_up: return "_mt_backen"
+        if "STREUSEL HERSTELLEN" in p_up: return "_streusel_haupt"
+        if p_up.startswith("STREUSEL"):   return "_streusel_chargen"
+        pk = a.get("produkt_key")
+        if pk: return "p:" + pk
+        return "x:" + (a.get("produkt") or "")
 
-    # Bereits gezeigte Rezepte (je Produkt nur einmal pro Tag)
-    rezept_gezeigt=set()
-
+    groups = []  # erhalten Reihenfolge der Erst-Vorkommen
+    g_idx = {}
     for a in aufgaben_html:
         if a.get("excel_only"): continue
-        p=a["produkt"]; n=a["notiz"]; m=a["menge"]; pk=a.get("produkt_key")
+        k = _group_key_for(a)
+        if k in g_idx:
+            g = groups[g_idx[k]]
+        else:
+            g_idx[k] = len(groups)
+            g = {"key": k, "first": a, "aufgaben": [],
+                 "total_menge": 0, "total_aktiv": 0, "total_passiv": 0}
+            groups.append(g)
+        g["aufgaben"].append(a)
+        g["total_menge"]  += int(a.get("menge") or 0)
+        g["total_aktiv"]  += int(a.get("aktiv_min") or 0)
+        g["total_passiv"] += int(a.get("passiv_min") or 0)
+
+    def _attr_json(obj):
+        return json.dumps(obj, ensure_ascii=False).replace('"', '&quot;').replace("'", '&#39;')
+
+    def _rezept_to_json(rzp):
+        if not rzp or not rzp.get('sections'): return None
+        secs = []
+        for sec in rzp['sections']:
+            zts = []
+            for z in sec.get('zutaten', []):
+                zts.append({"z": z['zutat'], "m": z['menge'], "e": z.get('einheit','g')})
+            secs.append({"name": sec.get('name',''), "zutaten": zts})
+        return {"sections": secs, "max_charge": rzp.get('max_charge_num',1) or 1}
+
+    # Pro-Tag-Mengen pro Produkt (fuer Rezept-Skalierung, identisch zu group totals)
+    tagesmengen = {g["key"]: g["total_menge"] for g in groups}
+
+    # ---- Gruppen rendern ----
+    for g in groups:
+        k = g["key"]
+        first = g["first"]
+        n = first.get("notiz") or ""
+        a_min = g["total_aktiv"]
+        p_min = g["total_passiv"]
+        zeit_html = _zeit_badge(a_min, p_min)
 
         # --- Muerbeteig ansetzen ---
-        a_min = a.get("aktiv_min", 0)
-        p_min = a.get("passiv_min", 0)
-
-        if "MUERBETEIG ANSETZEN" in p:
+        if k == "_mt_ansetzen":
             gr=murt["grundrezepte"]
             zutaten_html="".join(
-                '<li><span class="zutat">{}</span><span class="menge">{}g</span></li>'.format(z,mg)
+                '<li><span class="zutat" data-z="{z}">{z}</span><span class="menge" data-per="{m}">{m}g</span></li>'.format(z=z,m=mg)
                 for z,mg in MURBETEIG_REZEPT.items()
             )
+            recipe_data = {"sections":[{"name":"","zutaten":[{"z":z,"m":mg,"e":"g"} for z,mg in MURBETEIG_REZEPT.items()]}],"max_charge":1}
             inhalt+=(
-                '<div class="task special" onclick="toggleTask(this)">'
-                '<div class="task-header"><span class="task-title-text">Muerbeteig ansetzen &mdash; {}x Grundrezept</span><span class="task-toggle">&#9660;</span></div>'
+                '<div class="task special" data-tag="{tag}" data-key="_mt_ansetzen" data-typ="hilfe" '
+                'data-plan-menge="{gr}" data-recipe="{rcp}">'
+                '<div class="task-header" onclick="toggleTask(event,this)">'
+                '<span class="task-title-text">Muerbeteig ansetzen &mdash; <span class="ist-menge">{gr}</span>x Grundrezept</span>'
+                '<span class="task-toggle">&#9660;</span></div>'
                 '<div class="task-body">'
-                '<div class="task-note">{}</div>'
-                '{}'
-                '<div class="recipe">'
-                '<div class="recipe-title">Grundrezept (1x ansetzen, {}x wiederholen)</div>'
-                '<ul class="zutaten">{}</ul>'
-                '</div>'
+                '<div class="task-note">{n}</div>{zb}'
+                '<div class="recipe"><div class="recipe-title">Grundrezept (1x ansetzen, <span class="repeat-n">{gr}</span>x wiederholen)</div>'
+                '<ul class="zutaten">{zh}</ul></div>'
                 '</div></div>'
-            ).format(gr,n,_zeit_badge(a_min,p_min),gr,zutaten_html)
+            ).format(tag=tag,gr=gr,rcp=_attr_json(recipe_data),n=n,zb=zeit_html,zh=zutaten_html)
             continue
 
         # --- Muerbeteig backen ---
-        if "MUERBETEIG BACKEN" in p:
+        if k == "_mt_backen":
             portionen_html="".join(
                 '<li><span class="zutat">{}x {}</span><span class="menge">{}g</span></li>'.format(
                     v["anzahl"],t,int(v["gramm"]))
@@ -2340,31 +2378,20 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
                 portionen_html+='<li><span class="zutat">{}x Mürbeteig rund (fuer naechsten Montag)</span><span class="menge">{}g</span></li>'.format(
                     res,res*MURBETEIG_PORTIONEN.get("Mürbeteig rund", 180))
             inhalt+=(
-                '<div class="task special" onclick="toggleTask(this)">'
-                '<div class="task-header"><span class="task-title-text">Muerbeteig backen &mdash; alle Boeden heute</span><span class="task-toggle">&#9660;</span></div>'
+                '<div class="task special" data-tag="{tag}" data-key="_mt_backen" data-typ="hilfe" data-plan-menge="1">'
+                '<div class="task-header" onclick="toggleTask(event,this)">'
+                '<span class="task-title-text">Muerbeteig backen &mdash; alle Boeden heute</span>'
+                '<span class="task-toggle">&#9660;</span></div>'
                 '<div class="task-body">'
-                '<div class="task-note">180&deg;C, 7&ndash;9 Minuten</div>'
-                '{}'
+                '<div class="task-note">180&deg;C, 7&ndash;9 Minuten</div>{zb}'
                 '<div class="recipe"><div class="recipe-title">Boeden aufteilen</div>'
-                '<ul class="zutaten">{}</ul></div>'
-                '</div>'
-                '</div>'
-            ).format(_zeit_badge(a_min,p_min),portionen_html)
+                '<ul class="zutaten">{ph}</ul></div>'
+                '</div></div>'
+            ).format(tag=tag,zb=zeit_html,ph=portionen_html)
             continue
 
-        # --- Pistazien ---
-        if "PISTAZIEN" in p.upper():
-            cls="prep"
-            inhalt+='<div class="task {}" onclick="toggleTask(this)">'.format(cls)
-            inhalt+='<div class="task-header"><span class="task-title-text">{}{}</span><span class="task-toggle">&#9660;</span></div>'.format(
-                p, " &mdash; {} Stk".format(int(m)) if m else "")
-            inhalt+='<div class="task-body">{}<div class="task-note">{}</div></div>'.format(
-                _zeit_badge(a_min,p_min), n)
-            inhalt+='</div>'
-            continue
-
-        # --- Streusel herstellen ---
-        if "STREUSEL HERSTELLEN" in p:
+        # --- Streusel herstellen (zentral mit Rezept) ---
+        if k == "_streusel_haupt":
             sr_key = "Streusel"
             srz = (sub_rezepte or {}).get(sr_key)
             n_mal_str = n.split("x ")[0] if "x " in n else "1"
@@ -2373,39 +2400,54 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
             streusel_recipe_html = ''
             if srz:
                 streusel_recipe_html = format_sub_rezept_html(sr_key, srz, n_mal_s)
+            rd = _rezept_to_json(srz) if srz else None
+            rcp_attr = ' data-recipe="{}"'.format(_attr_json(rd)) if rd else ''
             inhalt += (
-                '<div class="task special" onclick="toggleTask(this)">'
-                '<div class="task-header"><span class="task-title-text">Streusel herstellen &mdash; {}x Grundrezept</span><span class="task-toggle">&#9660;</span></div>'
+                '<div class="task special" data-tag="{tag}" data-key="_streusel" data-typ="hilfe" '
+                'data-plan-menge="{m}"{rcp}>'
+                '<div class="task-header" onclick="toggleTask(event,this)">'
+                '<span class="task-title-text">Streusel herstellen &mdash; <span class="ist-menge">{m}</span>x Grundrezept</span>'
+                '<span class="task-toggle">&#9660;</span></div>'
                 '<div class="task-body">'
-                '<div class="task-note">{}</div>'
-                '{}'
-                '{}'
-                '</div>'
-                '</div>'
-            ).format(n_mal_s, n, _zeit_badge(a_min,p_min), streusel_recipe_html)
+                '<div class="task-note">{n}</div>{zb}{rh}'
+                '</div></div>'
+            ).format(tag=tag,m=n_mal_s,rcp=rcp_attr,n=n,zb=zeit_html,rh=streusel_recipe_html)
             continue
 
-        # --- Normale Produktionsaufgabe ---
-        tagesm=tagesmengen.get(pk,m) if pk else m
-        # Notiz ohne "Murbeteigboden von letzter Woche" sauber anzeigen
+        # --- Streusel Chargen (mehrere zusammengefasst) ---
+        if k == "_streusel_chargen":
+            anzahl = len(g["aufgaben"])
+            inhalt += (
+                '<div class="task" data-tag="{tag}" data-key="_streusel_chargen" data-typ="hilfe" data-plan-menge="{m}">'
+                '<div class="task-header" onclick="toggleTask(event,this)">'
+                '<span class="task-title-text">STREUSEL &mdash; <span class="ist-menge">{m}</span> Chargen</span>'
+                '<span class="task-toggle">&#9660;</span></div>'
+                '<div class="task-body">'
+                '<div class="task-note">{n}</div>{zb}'
+                '</div></div>'
+            ).format(tag=tag,m=anzahl,n=n,zb=zeit_html)
+            continue
+
+        # --- Normaler Produkt-Eintrag (alle Chargen eines Produkts zusammen) ---
+        p = first["produkt"]; pk = first.get("produkt_key")
+        m = g["total_menge"]
+        is_pistazien = "PISTAZIEN" in (p or "").upper()
+        cls_extra = " prep" if is_pistazien else ""
+
         notiz_extra=""
         if "letzter Woche" in n:
             notiz_extra = ("Murbeteigboeden von dieser Woche verwenden (Dienstag gebacken)"
                            if ist_heut else "Murbeteigboeden von letzter Woche verwenden")
 
-        header="{}".format(p.replace("Kaesekuchen","Kaesekuchen").replace("Kaese-Rhabarber Schnitte","Kaese-Rhabarber"))
-        charge_info=n.split(" - ")[0] if " - " in n else n
+        # Charge-Infos aller Aufgaben dieses Produkts zusammenfuegen
+        charge_infos = []
+        for a in g["aufgaben"]:
+            ci = (a.get("notiz") or "").split(" - ")[0]
+            if ci and ci not in charge_infos:
+                charge_infos.append(ci)
+        charge_info = " + ".join(charge_infos)
 
-        # Zeitangabe fuer diese Aufgabe
-        a_min = a.get("aktiv_min", 0)
-        p_min = a.get("passiv_min", 0)
-        zeit_html = ""
-        if a_min:
-            z_parts = ["&#9998; {}".format(fmt_min(a_min))]
-            if p_min: z_parts.append("&#9201; {} passiv".format(fmt_min(p_min)))
-            zeit_html = '<div class="task-zeit">{}</div>'.format(" &nbsp;|&nbsp; ".join(z_parts))
-
-        notwendig_val = a.get("notwendig")
+        notwendig_val = first.get("notwendig")
         if notwendig_val is True:
             badge_html = '<span class="badge badge-notwendig">&#128308; Notwendig</span>'
         elif notwendig_val is False:
@@ -2413,29 +2455,49 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
         else:
             badge_html = ""
 
-        if m and m > 0:
-            inhalt+='<div class="task" onclick="toggleTask(this)"><div class="task-header"><span class="task-title-text">{} &mdash; {} Stk{}</span><span class="task-toggle">&#9660;</span></div>'.format(p,int(m),badge_html)
-        else:
-            inhalt+='<div class="task" onclick="toggleTask(this)"><div class="task-header"><span class="task-title-text">{}{}</span><span class="task-toggle">&#9660;</span></div>'.format(p,badge_html)
-        inhalt+='<div class="task-body">'
-        if charge_info: inhalt+='<div class="task-note">{}</div>'.format(charge_info)
-        if notiz_extra: inhalt+='<div class="task-note" style="color:#8B4513">{}</div>'.format(notiz_extra)
-        if zeit_html: inhalt+=zeit_html
-
-        # Rezept (nur beim ersten Vorkommen des Produkts an diesem Tag)
-        if pk and pk not in rezept_gezeigt:
-            rzp=rezepte.get(pk)
+        # Rezept einmal pro Produkt pro Tag (entfaellt fuer Pistazien wie bisher)
+        rezept_html = ""
+        rcp_attr = ""
+        sub_attr = ""
+        if pk and not is_pistazien:
+            rzp = (rezepte or {}).get(pk)
             if rzp:
-                rezept_html=format_rezept_block_html(rzp,tagesm)
-                inhalt+=rezept_html
-                # Sub-Rezepte zeigen
+                rezept_html = format_rezept_block_html(rzp, m)
+                rd = _rezept_to_json(rzp)
+                if rd: rcp_attr = ' data-recipe="{}"'.format(_attr_json(rd))
                 if sub_rezepte:
-                    # Streusel wird Montags fuer die ganze Woche hergestellt
                     skip = {"Streusel"} if tag != "Montag" else set()
-                    inhalt+=format_alle_sub_rezepte_html(rzp,tagesm,sub_rezepte,skip_keys=skip)
-            rezept_gezeigt.add(pk)
+                    rezept_html += format_alle_sub_rezepte_html(rzp, m, sub_rezepte, skip_keys=skip)
+                    # Sub-Rezepte referenziert vom Hauptrezept (fuer Client-Rescaling)
+                    used_subs = {}
+                    for sec in rzp.get('sections', []):
+                        for z in sec.get('zutaten', []):
+                            if z.get('einheit') == 'ref':
+                                sub_key = z['zutat']
+                                if sub_key in (sub_rezepte or {}) and sub_key not in skip:
+                                    sub_data = _rezept_to_json(sub_rezepte[sub_key])
+                                    if sub_data: used_subs[sub_key] = sub_data
+                    if used_subs:
+                        sub_attr = ' data-subrecipe="{}"'.format(_attr_json(used_subs))
 
-        inhalt+='</div></div>'
+        if m and m > 0:
+            head = '<span class="task-title-text">{} &mdash; <span class="ist-menge">{}</span> Stk{}</span>'.format(p,int(m),badge_html)
+        else:
+            head = '<span class="task-title-text">{}{}</span>'.format(p,badge_html)
+
+        body_extras = ""
+        if charge_info: body_extras += '<div class="task-note charge-note">{}</div>'.format(charge_info)
+        if notiz_extra: body_extras += '<div class="task-note" style="color:#8B4513">{}</div>'.format(notiz_extra)
+        if zeit_html:   body_extras += zeit_html
+
+        inhalt += (
+            '<div class="task{cls}" data-tag="{tag}" data-key="{pk}" data-typ="produkt" '
+            'data-plan-menge="{m}"{rcp}{sub}>'
+            '<div class="task-header" onclick="toggleTask(event,this)">{head}<span class="task-toggle">&#9660;</span></div>'
+            '<div class="task-body">{body}{rh}</div>'
+            '</div>'
+        ).format(cls=cls_extra,tag=tag,pk=(pk or first.get("produkt") or ""),
+                 m=int(m),rcp=rcp_attr,sub=sub_attr,head=head,body=body_extras,rh=rezept_html)
 
     # --- Lager-Status-Panel ---
     if lager_info:
@@ -2490,57 +2552,364 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
         '&#9888; Neuplanung ab heute &mdash; vergangene Tage dieser Woche nicht enthalten'
         '</div>'
     ) if ist_heut else ""
-    toggle_js = (
-        "<script>"
-        "function toggleTask(el){"
-        "var wasCollapsed=el.classList.contains('collapsed');"
-        "el.classList.toggle('collapsed');"
-        "if(el.classList.contains('done')&&!wasCollapsed){el.classList.remove('done');}"
-        "saveState();"
-        "}"
-        "function markDone(el,e){"
-        "e.stopPropagation();"
-        "el.classList.toggle('done');"
-        "if(!el.classList.contains('done')){el.classList.remove('collapsed');}"
-        "else{el.classList.add('collapsed');}"
-        "saveState();"
-        "}"
-        "function saveState(){"
-        "var states={};"
-        "document.querySelectorAll('.task[data-id]').forEach(function(el){"
-        "states[el.dataset.id]=(el.classList.contains('collapsed')?'c':'')+(el.classList.contains('done')?'d':'');"
-        "});"
-        "try{localStorage.setItem('tp_'+location.pathname,JSON.stringify(states));}catch(e){}"
-        "}"
-        "document.addEventListener('DOMContentLoaded',function(){"
-        "var idx=0;"
-        "document.querySelectorAll('.task').forEach(function(el){"
-        "el.dataset.id='t'+(idx++);"
-        "var btn=document.createElement('button');"
-        "btn.className='done-btn';"
-        "btn.title='Erledigt markieren';"
-        "btn.innerHTML='&#10003;';"
-        "btn.onclick=function(e){markDone(el,e);};"
-        "var hdr=el.querySelector('.task-header');"
-        "if(hdr)hdr.appendChild(btn);"
-        "});"
-        "try{"
-        "var states=JSON.parse(localStorage.getItem('tp_'+location.pathname)||'{}');"
-        "document.querySelectorAll('.task[data-id]').forEach(function(el){"
-        "var s=states[el.dataset.id]||'';"
-        "if(s.indexOf('c')>=0)el.classList.add('collapsed');"
-        "if(s.indexOf('d')>=0)el.classList.add('done','collapsed');"
-        "});"
-        "}catch(e){}"
-        "});"
-        "</script>"
-    )
+    toggle_js = """<script>
+(function(){
+var DAYS=['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+var IST={kw:'',tage:{},_sha:null};
+var KW='';
+
+function cfg(k){return localStorage.getItem('kp_'+k)||'';}
+function ghBase(){return 'https://api.github.com/repos/'+cfg('owner')+'/'+cfg('repo');}
+function ghReady(){return cfg('owner')&&cfg('repo')&&cfg('token');}
+
+function getKW(){
+  var dt=document.querySelector('.datum');
+  if(dt){
+    var m=dt.textContent.match(/KW\\s*(\\d+)/i);
+    var ym=dt.textContent.match(/(\\d{2})\\.(\\d{2})\\.(\\d{4})/);
+    if(m){
+      var jahr=ym?ym[3]:String(new Date().getFullYear());
+      var w=m[1]; if(w.length<2) w='0'+w;
+      return jahr+'-'+w;
+    }
+  }
+  return String(new Date().getFullYear())+'-00';
+}
+
+function showToast(msg,kind){
+  var d=document.createElement('div');
+  d.className='ip-toast '+(kind||'');
+  d.textContent=msg;
+  document.body.appendChild(d);
+  setTimeout(function(){d.classList.add('show');},10);
+  setTimeout(function(){d.classList.remove('show');setTimeout(function(){d.remove();},300);},2200);
+}
+
+function setIst(tag,key,fields){
+  if(!IST.tage[tag]) IST.tage[tag]={};
+  if(!IST.tage[tag][key]) IST.tage[tag][key]={};
+  Object.assign(IST.tage[tag][key],fields);
+}
+function getIst(tag,key){
+  return (IST.tage[tag]||{})[key]||{};
+}
+
+window.toggleTask=function(e,hdrEl){
+  if(e && e.target){
+    var tgt=e.target;
+    if(tgt.closest('.done-btn,.gear-btn,.gear-panel,input,select,button')) return;
+  }
+  var el=hdrEl.closest('.task');
+  if(el) el.classList.toggle('collapsed');
+};
+
+window.markDone=function(e,btn){
+  e.stopPropagation();
+  var el=btn.closest('.task');
+  el.classList.toggle('done');
+  var isDone=el.classList.contains('done');
+  if(isDone){
+    el.classList.add('collapsed');
+    var rec=getIst(el.dataset.tag,el.dataset.key);
+    if(typeof rec.ist_menge!=='number'){
+      setIst(el.dataset.tag,el.dataset.key,{ist_menge:parseFloat(el.dataset.planMenge)});
+    }
+    setIst(el.dataset.tag,el.dataset.key,{erledigt:true});
+  }else{
+    el.classList.remove('collapsed');
+    setIst(el.dataset.tag,el.dataset.key,{erledigt:false});
+  }
+  saveIst();
+};
+
+window.openGear=function(e,btn){
+  e.stopPropagation();
+  var el=btn.closest('.task');
+  var panel=el.querySelector('.gear-panel');
+  if(!panel) return;
+  if(panel.style.display==='block'){panel.style.display='none';return;}
+  var rec=getIst(el.dataset.tag,el.dataset.key);
+  var stkInp=panel.querySelector('.stk-input');
+  var cur=(typeof rec.ist_menge==='number')?rec.ist_menge:parseFloat(el.dataset.planMenge);
+  stkInp.value=cur;
+  var daySel=panel.querySelector('.day-select');
+  daySel.value=rec.verschoben_nach||el.dataset.tag;
+  panel.style.display='block';
+  el.classList.remove('collapsed');
+};
+
+window.saveGearChanges=function(btn){
+  var panel=btn.closest('.gear-panel');
+  var el=panel.closest('.task');
+  var stk=parseFloat(panel.querySelector('.stk-input').value);
+  if(isNaN(stk)||stk<0) stk=0;
+  applyStk(el,stk);
+  applyVerschieben(el,panel.querySelector('.day-select').value);
+  panel.style.display='none';
+  saveIst();
+};
+
+window.cancelGear=function(btn){
+  btn.closest('.gear-panel').style.display='none';
+};
+
+function applyStk(el,newStk){
+  setIst(el.dataset.tag,el.dataset.key,{ist_menge:newStk});
+  setStkDisplay(el,newStk);
+}
+
+function applyVerschieben(el,newTag){
+  if(newTag===el.dataset.tag){
+    setIst(el.dataset.tag,el.dataset.key,{verschoben_nach:null});
+    el.classList.remove('verschoben');
+    var b=el.querySelector('.verschoben-banner');if(b)b.remove();
+  }else{
+    setIst(el.dataset.tag,el.dataset.key,{verschoben_nach:newTag});
+    el.classList.add('verschoben');
+    addVerschobenBanner(el,'auf '+newTag);
+  }
+}
+
+function addVerschobenBanner(el,txt){
+  var existing=el.querySelector('.verschoben-banner');
+  if(existing) existing.remove();
+  var b=document.createElement('div');
+  b.className='verschoben-banner';
+  b.textContent='↪ Verschoben '+txt;
+  var body=el.querySelector('.task-body');
+  if(body) body.insertBefore(b,body.firstChild);
+}
+
+function setStkDisplay(el,newStk){
+  el.querySelectorAll('.ist-menge').forEach(function(s){s.textContent=newStk;});
+  var rcpStr=el.dataset.recipe;
+  if(rcpStr){
+    try{renderRecipe(el,JSON.parse(rcpStr),newStk);}catch(e){console.warn('recipe',e);}
+  }
+  var subStr=el.dataset.subrecipe;
+  if(subStr){
+    try{renderSubRecipes(el,JSON.parse(subStr),newStk);}catch(e){console.warn('subrecipe',e);}
+  }
+  if(newStk<=0){el.classList.add('ist-null');}
+  else{el.classList.remove('ist-null');}
+}
+
+function fmtGramm(v){
+  v=Math.round(v*10)/10;
+  return (v===Math.floor(v))?Math.floor(v)+'g':v+'g';
+}
+
+function renderRecipe(el,rcp,stk){
+  var rec=el.querySelector('.recipe');
+  if(!rec || !rcp.sections) return;
+  var ul=rec.querySelector('.zutaten');
+  if(!ul) return;
+  var html='';
+  rcp.sections.forEach(function(sec){
+    if(rcp.sections.length>1 && sec.name){
+      html+='<div class="rzp-sec">'+sec.name+'</div>';
+    }
+    sec.zutaten.forEach(function(z){
+      if(z.e==='ref'){
+        html+='<li><span class="zutat">'+z.z+'</span><span class="menge">'+z.m+'  (vorh. backen/vorbereiten)</span></li>';
+      }else{
+        html+='<li><span class="zutat">'+z.z+'</span><span class="menge">'+fmtGramm(z.m*stk)+'</span></li>';
+      }
+    });
+  });
+  ul.innerHTML=html;
+  var t=rec.querySelector('.recipe-title');
+  if(t){
+    var mx=rcp.max_charge||1;
+    var nMal=mx>0?Math.ceil(stk/mx):1;
+    var batch=Math.min(mx,stk);
+    if(stk<=0){t.innerHTML='Rezept (Ist-Menge: 0)';return;}
+    var title=(batch>1?'Rezept fuer '+batch+' Stk':'Grundrezept (1 Stk)');
+    title+=' &mdash; '+(nMal>1?'heute '+nMal+'x ansetzen':'1x ansetzen');
+    t.innerHTML=title;
+  }
+}
+
+function renderSubRecipes(el,subs,stk){
+  Object.keys(subs).forEach(function(key){
+    var rcp=subs[key];
+    el.querySelectorAll('.sub-recipe').forEach(function(b){
+      var title=b.querySelector('.sub-recipe-title');
+      if(!title) return;
+      if(title.textContent.toUpperCase().indexOf(key.toUpperCase())<0) return;
+      var ul=b.querySelector('.zutaten');
+      if(!ul) return;
+      var html='';
+      rcp.sections.forEach(function(sec){
+        sec.zutaten.forEach(function(z){
+          html+='<li><span class="zutat">'+z.z+'</span><span class="menge">'+fmtGramm(z.m*stk)+'</span></li>';
+        });
+      });
+      ul.innerHTML=html;
+    });
+  });
+}
+
+function applyIst(){
+  document.querySelectorAll('.task[data-tag][data-key]').forEach(function(el){
+    var rec=getIst(el.dataset.tag,el.dataset.key);
+    if(rec.erledigt){el.classList.add('done','collapsed');}
+    if(typeof rec.ist_menge==='number' && rec.ist_menge!==parseFloat(el.dataset.planMenge)){
+      setStkDisplay(el,rec.ist_menge);
+    }
+    if(rec.verschoben_nach){
+      el.classList.add('verschoben');
+      addVerschobenBanner(el,'auf '+rec.verschoben_nach);
+    }
+    if(rec.verschoben_von){
+      addVerschobenBanner(el,'von '+rec.verschoben_von);
+    }
+  });
+}
+
+async function loadIst(){
+  KW=getKW();
+  if(!ghReady()){
+    var indicator=document.getElementById('ip-status');
+    if(indicator){indicator.textContent='⚠ GitHub-Login fehlt — Status wird nicht gespeichert';indicator.className='ip-status warn';}
+    return;
+  }
+  try{
+    var r=await fetch(ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json?ref=main',{
+      headers:{Authorization:'Bearer '+cfg('token'),Accept:'application/vnd.github+json'}
+    });
+    if(r.status===404){
+      var ind=document.getElementById('ip-status');
+      if(ind){ind.textContent='Tracking aktiv (KW '+KW+')';ind.className='ip-status ok';}
+      return;
+    }
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    var j=await r.json();
+    IST._sha=j.sha;
+    var content=atob(j.content.replace(/\\s/g,''));
+    var data=JSON.parse(decodeURIComponent(escape(content)));
+    IST.kw=data.kw||KW;
+    IST.tage=data.tage||{};
+    applyIst();
+    var ind2=document.getElementById('ip-status');
+    if(ind2){ind2.textContent='Tracking aktiv (KW '+KW+')';ind2.className='ip-status ok';}
+  }catch(e){
+    console.warn('ist_produktion laden:',e);
+    var ind=document.getElementById('ip-status');
+    if(ind){ind.textContent='⚠ Fehler beim Laden: '+e.message;ind.className='ip-status warn';}
+  }
+}
+
+var _saveDebounce=null;
+async function saveIst(){
+  clearTimeout(_saveDebounce);
+  _saveDebounce=setTimeout(_doSaveIst,400);
+}
+
+async function _doSaveIst(){
+  if(!ghReady()){showToast('GitHub-Login fehlt','error');return;}
+  try{
+    var getR=await fetch(ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json?ref=main',{
+      headers:{Authorization:'Bearer '+cfg('token'),Accept:'application/vnd.github+json'}
+    });
+    if(getR.ok){var gj=await getR.json();IST._sha=gj.sha;}
+    else if(getR.status===404){IST._sha=null;}
+  }catch(e){}
+  var payload={kw:KW,_format:1,_updated:new Date().toISOString(),tage:IST.tage};
+  var jsonStr=JSON.stringify(payload,null,2);
+  var b64=btoa(unescape(encodeURIComponent(jsonStr)));
+  var body={message:'ist_produktion KW '+KW+' aktualisiert',content:b64};
+  if(IST._sha) body.sha=IST._sha;
+  try{
+    var r=await fetch(ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json',{
+      method:'PUT',
+      headers:{Authorization:'Bearer '+cfg('token'),Accept:'application/vnd.github+json','Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(!r.ok){var er=await r.json();throw new Error(er.message||'HTTP '+r.status);}
+    var rj=await r.json();IST._sha=rj.content.sha;
+    showToast('Gespeichert','success');
+  }catch(e){
+    showToast('Speichern: '+e.message,'error');
+  }
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  // Status-Indikator
+  var status=document.createElement('div');
+  status.id='ip-status';
+  status.className='ip-status';
+  status.textContent='Verbinde...';
+  var h1=document.querySelector('h1');
+  if(h1 && h1.parentNode){h1.parentNode.insertBefore(status,h1.nextSibling);}
+  // Tasks mit Buttons + Panel ausstatten
+  document.querySelectorAll('.task[data-tag][data-key]').forEach(function(el){
+    var hdr=el.querySelector('.task-header');
+    if(hdr){
+      var dbtn=document.createElement('button');
+      dbtn.className='done-btn';dbtn.title='Erledigt';dbtn.innerHTML='&#10003;';
+      dbtn.onclick=function(e){markDone(e,dbtn);};
+      var gbtn=document.createElement('button');
+      gbtn.className='gear-btn';gbtn.title='Einstellungen';gbtn.innerHTML='&#9881;';
+      gbtn.onclick=function(e){openGear(e,gbtn);};
+      var toggle=hdr.querySelector('.task-toggle');
+      if(toggle){
+        hdr.insertBefore(gbtn,toggle);
+        hdr.insertBefore(dbtn,toggle);
+      }else{
+        hdr.appendChild(dbtn);hdr.appendChild(gbtn);
+      }
+    }
+    var panel=document.createElement('div');
+    panel.className='gear-panel';
+    panel.style.display='none';
+    panel.onclick=function(e){e.stopPropagation();};
+    var planM=el.dataset.planMenge||'0';
+    var curTag=el.dataset.tag;
+    var dayOpts=DAYS.map(function(d){
+      return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
+    }).join('');
+    panel.innerHTML=
+      '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
+      '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
+      '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
+      '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
+    el.appendChild(panel);
+  });
+  loadIst();
+});
+})();
+</script>"""
     done_btn_css = (
-        ".done-btn{background:none;border:1.5px solid #ccc;border-radius:50%;width:22px;height:22px;"
-        "font-size:12px;color:#aaa;cursor:pointer;flex-shrink:0;margin-left:4px;padding:0;line-height:1;"
+        ".done-btn,.gear-btn{background:none;border:1.5px solid #ccc;border-radius:50%;width:28px;height:28px;"
+        "font-size:14px;color:#888;cursor:pointer;flex-shrink:0;margin-left:4px;padding:0;line-height:1;"
         "display:flex;align-items:center;justify-content:center;transition:all .15s}"
+        ".done-btn:hover,.gear-btn:hover{background:#f5f5f5}"
         ".done-btn:active{background:#e8f5e9;border-color:#43a047;color:#43a047}"
         ".task.done .done-btn{background:#e8f5e9;border-color:#43a047;color:#43a047}"
+        ".gear-btn{font-size:15px}"
+        ".gear-panel{background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:12px;margin-top:10px}"
+        ".gear-row{margin-bottom:8px;font-size:14px}"
+        ".gear-row label{display:flex;align-items:center;gap:8px;font-weight:600}"
+        ".gear-row input,.gear-row select{padding:6px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:15px;background:white}"
+        ".gear-row input{width:80px;text-align:center;font-weight:700}"
+        ".gear-hint{font-size:12px;color:#888;margin-left:6px}"
+        ".gear-actions{display:flex;gap:8px;margin-top:10px}"
+        ".gear-save,.gear-cancel{flex:1;padding:8px;border-radius:6px;font-weight:700;cursor:pointer;border:none;font-size:14px}"
+        ".gear-save{background:#2E75B6;color:white}"
+        ".gear-cancel{background:#e9ecef;color:#495057}"
+        ".task-header{cursor:pointer}"
+        ".task.verschoben{border-left-color:#9b59b6!important;opacity:0.75}"
+        ".verschoben-banner{background:#f4ecf7;color:#6c3483;padding:6px 10px;border-radius:6px;font-size:12px;font-weight:600;margin-bottom:8px}"
+        ".task.ist-null{opacity:0.5}"
+        ".task.ist-null .recipe{opacity:0.5}"
+        ".ip-status{text-align:center;font-size:12px;padding:5px 12px;border-radius:6px;margin:0 auto 8px;max-width:300px;color:#666;background:#f5f5f5}"
+        ".ip-status.ok{background:#d4edda;color:#155724}"
+        ".ip-status.warn{background:#fff3cd;color:#856404}"
+        ".ip-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#333;color:white;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;transition:transform .3s;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,.2)}"
+        ".ip-toast.show{transform:translateX(-50%) translateY(0)}"
+        ".ip-toast.success{background:#28a745}"
+        ".ip-toast.error{background:#dc3545}"
     )
     html=(
         "<!DOCTYPE html>\n"
