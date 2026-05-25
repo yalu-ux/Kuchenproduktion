@@ -1,8 +1,335 @@
 <!DOCTYPE html>
 <html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Donnerstag</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#1a1a2e;padding:12px;font-size:15px}h1{font-size:22px;font-weight:700;color:#2E75B6;text-align:center;padding:12px;background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:4px}.datum{text-align:center;color:#666;font-size:13px;margin-bottom:4px}.zeitbadge{text-align:center;margin-bottom:14px}.zeitbadge span{display:inline-block;background:#2E75B6;color:white;border-radius:20px;padding:4px 14px;font-size:13px;font-weight:600;margin:2px}.zeitbadge .passiv{background:#8AAECC}.task{background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-left:4px solid #2E75B6;cursor:pointer}.task.special{border-left-color:#375623}.task.prep{border-left-color:#9B59B6;background:#F9F0FF}.task-header{font-weight:700;font-size:16px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:flex-start;gap:6px}.task-title-text{flex:1}.task-toggle{font-size:13px;color:#bbb;flex-shrink:0;padding-top:2px;transition:transform .2s;display:inline-block;line-height:1}.task.collapsed .task-toggle{transform:rotate(-90deg)}.task-body{}.task.collapsed .task-body{display:none}.task.done{opacity:0.55;border-left-color:#ccc!important}.task.done .task-title-text{text-decoration:line-through;color:#aaa}.task-note{color:#555;font-size:13px;margin-bottom:6px}.task-zeit{color:#2E75B6;font-size:12px;font-weight:600;margin-bottom:6px}.recipe{background:#F0F7F0;border-radius:8px;padding:10px;margin-top:8px;border:1px solid #C6DFC6}.recipe-title{font-weight:700;color:#375623;font-size:13px;margin-bottom:6px}.rzp-sec{font-weight:600;color:#666;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 3px;border-top:1px solid #D9EAD3;padding-top:5px}.zutaten{list-style:none;padding:0}.zutaten li{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e8f4e8;font-size:14px}.zutaten li:last-child{border-bottom:none}.ek-panel{background:#f0faf0;border:1px solid #b2dfdb;border-radius:8px;padding:12px 14px;margin-top:16px}.ek-title{font-weight:700;color:#2e7d32;margin-bottom:8px;font-size:.95em}.ek-table{width:100%;border-collapse:collapse;font-size:.87em}.ek-table th{background:#43a047;color:#fff;padding:6px 8px;text-align:left}.ek-table td{padding:5px 8px;border-bottom:1px solid #c8e6c9}.ek-table tr:last-child td{border-bottom:none}.z-menge,.z-kosten{text-align:right}.ek-total td{font-weight:700;background:#c8e6c9}.zutat{color:#333}.menge{font-weight:600;color:#375623}.sub-recipe{background:#FFF8E1;border-radius:8px;padding:10px;margin-top:6px;border:1px solid #FFE082}.sub-recipe-title{font-weight:700;color:#7B5800;font-size:12px;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.3px}.footer{text-align:center;color:#aaa;font-size:11px;margin-top:16px}.lager-panel{background:white;border-radius:12px;padding:12px;margin-top:10px;border-left:4px solid #e67e22;box-shadow:0 1px 4px rgba(0,0,0,.08)}.lager-panel-title{font-weight:700;font-size:13px;color:#888;margin-bottom:8px}.lager-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;border-bottom:1px solid #f5f5f5}.lager-item:last-child{border-bottom:none}.lager-leer .lager-name{color:#c0392b;font-weight:700}.lager-leer .lager-bestand{color:#c0392b;font-weight:700}.lager-niedrig .lager-name{color:#e67e22}.lager-niedrig .lager-bestand{color:#e67e22;font-weight:600}.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;white-space:nowrap}.badge-notwendig{background:#FDECEA;color:#C62828;border:1px solid #EF9A9A}.badge-puffer{background:#FFF8E1;color:#7B6200;border:1px solid #FDD835}.done-btn{background:none;border:1.5px solid #ccc;border-radius:50%;width:22px;height:22px;font-size:12px;color:#aaa;cursor:pointer;flex-shrink:0;margin-left:4px;padding:0;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .15s}.done-btn:active{background:#e8f5e9;border-color:#43a047;color:#43a047}.task.done .done-btn{background:#e8f5e9;border-color:#43a047;color:#43a047}</style></head><body>
+<title>Donnerstag</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#1a1a2e;padding:12px;font-size:15px}h1{font-size:22px;font-weight:700;color:#2E75B6;text-align:center;padding:12px;background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:4px}.datum{text-align:center;color:#666;font-size:13px;margin-bottom:4px}.zeitbadge{text-align:center;margin-bottom:14px}.zeitbadge span{display:inline-block;background:#2E75B6;color:white;border-radius:20px;padding:4px 14px;font-size:13px;font-weight:600;margin:2px}.zeitbadge .passiv{background:#8AAECC}.task{background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-left:4px solid #2E75B6;cursor:pointer}.task.special{border-left-color:#375623}.task.prep{border-left-color:#9B59B6;background:#F9F0FF}.task-header{font-weight:700;font-size:16px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:flex-start;gap:6px}.task-title-text{flex:1}.task-toggle{font-size:13px;color:#bbb;flex-shrink:0;padding-top:2px;transition:transform .2s;display:inline-block;line-height:1}.task.collapsed .task-toggle{transform:rotate(-90deg)}.task-body{}.task.collapsed .task-body{display:none}.task.done{opacity:0.55;border-left-color:#ccc!important}.task.done .task-title-text{text-decoration:line-through;color:#aaa}.task-note{color:#555;font-size:13px;margin-bottom:6px}.task-zeit{color:#2E75B6;font-size:12px;font-weight:600;margin-bottom:6px}.recipe{background:#F0F7F0;border-radius:8px;padding:10px;margin-top:8px;border:1px solid #C6DFC6}.recipe-title{font-weight:700;color:#375623;font-size:13px;margin-bottom:6px}.rzp-sec{font-weight:600;color:#666;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 3px;border-top:1px solid #D9EAD3;padding-top:5px}.zutaten{list-style:none;padding:0}.zutaten li{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e8f4e8;font-size:14px}.zutaten li:last-child{border-bottom:none}.ek-panel{background:#f0faf0;border:1px solid #b2dfdb;border-radius:8px;padding:12px 14px;margin-top:16px}.ek-title{font-weight:700;color:#2e7d32;margin-bottom:8px;font-size:.95em}.ek-table{width:100%;border-collapse:collapse;font-size:.87em}.ek-table th{background:#43a047;color:#fff;padding:6px 8px;text-align:left}.ek-table td{padding:5px 8px;border-bottom:1px solid #c8e6c9}.ek-table tr:last-child td{border-bottom:none}.z-menge,.z-kosten{text-align:right}.ek-total td{font-weight:700;background:#c8e6c9}.zutat{color:#333}.menge{font-weight:600;color:#375623}.sub-recipe{background:#FFF8E1;border-radius:8px;padding:10px;margin-top:6px;border:1px solid #FFE082}.sub-recipe-title{font-weight:700;color:#7B5800;font-size:12px;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.3px}.footer{text-align:center;color:#aaa;font-size:11px;margin-top:16px}.lager-panel{background:white;border-radius:12px;padding:12px;margin-top:10px;border-left:4px solid #e67e22;box-shadow:0 1px 4px rgba(0,0,0,.08)}.lager-panel-title{font-weight:700;font-size:13px;color:#888;margin-bottom:8px}.lager-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;border-bottom:1px solid #f5f5f5}.lager-item:last-child{border-bottom:none}.lager-leer .lager-name{color:#c0392b;font-weight:700}.lager-leer .lager-bestand{color:#c0392b;font-weight:700}.lager-niedrig .lager-name{color:#e67e22}.lager-niedrig .lager-bestand{color:#e67e22;font-weight:600}.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;white-space:nowrap}.badge-notwendig{background:#FDECEA;color:#C62828;border:1px solid #EF9A9A}.badge-puffer{background:#FFF8E1;color:#7B6200;border:1px solid #FDD835}.done-btn,.gear-btn{background:none;border:1.5px solid #ccc;border-radius:50%;width:28px;height:28px;font-size:14px;color:#888;cursor:pointer;flex-shrink:0;margin-left:4px;padding:0;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .15s}.done-btn:hover,.gear-btn:hover{background:#f5f5f5}.done-btn:active{background:#e8f5e9;border-color:#43a047;color:#43a047}.task.done .done-btn{background:#e8f5e9;border-color:#43a047;color:#43a047}.gear-btn{font-size:15px}.gear-panel{background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:12px;margin-top:10px}.gear-row{margin-bottom:8px;font-size:14px}.gear-row label{display:flex;align-items:center;gap:8px;font-weight:600}.gear-row input,.gear-row select{padding:6px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:15px;background:white}.gear-row input{width:80px;text-align:center;font-weight:700}.gear-hint{font-size:12px;color:#888;margin-left:6px}.gear-actions{display:flex;gap:8px;margin-top:10px}.gear-save,.gear-cancel{flex:1;padding:8px;border-radius:6px;font-weight:700;cursor:pointer;border:none;font-size:14px}.gear-save{background:#2E75B6;color:white}.gear-cancel{background:#e9ecef;color:#495057}.task-header{cursor:pointer}.task.verschoben{border-left-color:#9b59b6!important;opacity:0.75}.verschoben-banner{background:#f4ecf7;color:#6c3483;padding:6px 10px;border-radius:6px;font-size:12px;font-weight:600;margin-bottom:8px}.task.ist-null{opacity:0.5}.task.ist-null .recipe{opacity:0.5}.ip-status{text-align:center;font-size:12px;padding:5px 12px;border-radius:6px;margin:0 auto 8px;max-width:300px;color:#666;background:#f5f5f5}.ip-status.ok{background:#d4edda;color:#155724}.ip-status.warn{background:#fff3cd;color:#856404}.ip-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#333;color:white;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;transition:transform .3s;z-index:1000;box-shadow:0 4px 12px rgba(0,0,0,.2)}.ip-toast.show{transform:translateX(-50%) translateY(0)}.ip-toast.success{background:#28a745}.ip-toast.error{background:#dc3545}</style></head><body>
 <h1>Donnerstag</h1><div class="datum">KW 22 &middot; 25.05.2026</div>
-<div class="zeitbadge"><span>&#9998; Aktiv: 9h10min</span><span class="passiv">&#9201; Passiv: 14h</span></div><div class="task" onclick="toggleTask(this)"><div class="task-header"><span class="task-title-text">Kaesekuchen &mdash; 2 Stk<span class="badge badge-puffer">&#128993; Puffer aufbauen</span></span><span class="task-toggle">&#9660;</span></div><div class="task-body"><div class="task-note">Charge 5/12</div><div class="task-zeit">&#9998; 20min &nbsp;|&nbsp; &#9201; 1h30min passiv</div><div class="recipe"><div class="recipe-title">Rezept fuer 2 Stk &mdash; heute 2x ansetzen</div><ul class="zutaten"><div class="rzp-sec">Käsemasse (pro Stück)</div><li><span class="zutat">Butter</span><span class="menge">240g</span></li><li><span class="zutat">Magerquark</span><span class="menge">800g</span></li><li><span class="zutat">Schmand</span><span class="menge">800g</span></li><li><span class="zutat">Eigelb</span><span class="menge">190g</span></li><li><span class="zutat">Milch</span><span class="menge">720g</span></li><li><span class="zutat">Zucker</span><span class="menge">160g</span></li><li><span class="zutat">Maisstärke</span><span class="menge">190g</span></li><li><span class="zutat">Zitronenaroma</span><span class="menge">2g</span></li><li><span class="zutat">Vanillearoma</span><span class="menge">2g</span></li><div class="rzp-sec">Baiserschnee (pro Stück)</div><li><span class="zutat">Eiklar</span><span class="menge">290g</span></li><li><span class="zutat">Zucker</span><span class="menge">240g</span></li><li><span class="zutat">Salz</span><span class="menge">2g</span></li><div class="rzp-sec">Sonstiges (pro Stück)</div><li><span class="zutat">Mürbeteigboden rund</span><span class="menge">1x  (vorh. backen/vorbereiten)</span></li><li><span class="zutat">Trennspray</span><span class="menge">6g</span></li><li><span class="zutat">Zucker (Tortenring)</span><span class="menge">16g</span></li></ul></div></div></div><div class="task" onclick="toggleTask(this)"><div class="task-header"><span class="task-title-text">Kaesekuchen &mdash; 2 Stk<span class="badge badge-puffer">&#128993; Puffer aufbauen</span></span><span class="task-toggle">&#9660;</span></div><div class="task-body"><div class="task-note">Charge 6/12</div><div class="task-zeit">&#9998; 20min &nbsp;|&nbsp; &#9201; 1h30min passiv</div></div></div><div class="task" onclick="toggleTask(this)"><div class="task-header"><span class="task-title-text">Bienenstich &mdash; 6 Stk<span class="badge badge-puffer">&#128993; Puffer aufbauen</span></span><span class="task-toggle">&#9660;</span></div><div class="task-body"><div class="task-note">Charge 2/4 → 1 frisch, 5 einfrieren</div><div class="task-zeit">&#9998; 2h &nbsp;|&nbsp; &#9201; 3h20min passiv</div><div class="recipe"><div class="recipe-title">Rezept fuer 3 Stk &mdash; heute 2x ansetzen</div><ul class="zutaten"><div class="rzp-sec">Hefeteig (pro Stück)</div><li><span class="zutat">Weizenmehl</span><span class="menge">660g</span></li><li><span class="zutat">Zucker</span><span class="menge">78g</span></li><li><span class="zutat">Salz</span><span class="menge">1.5g</span></li><li><span class="zutat">Butter</span><span class="menge">135g</span></li><li><span class="zutat">Milch</span><span class="menge">270g</span></li><li><span class="zutat">Hefe</span><span class="menge">42g</span></li><li><span class="zutat">Vollei</span><span class="menge">99g</span></li><li><span class="zutat">Zitronenaroma</span><span class="menge">3g</span></li><li><span class="zutat">Vanillearoma</span><span class="menge">3g</span></li><div class="rzp-sec">Auflage (pro Stück)</div><li><span class="zutat">Zucker</span><span class="menge">90g</span></li><li><span class="zutat">Honig</span><span class="menge">90g</span></li><li><span class="zutat">Butter</span><span class="menge">150g</span></li><li><span class="zutat">Sahne</span><span class="menge">30g</span></li><li><span class="zutat">Mandeln</span><span class="menge">180g</span></li><div class="rzp-sec">Vanillecreme Pudding (pro Stück)</div><li><span class="zutat">Milch</span><span class="menge">1050g</span></li><li><span class="zutat">Vanillezucker</span><span class="menge">15g</span></li><li><span class="zutat">Zucker</span><span class="menge">135g</span></li><li><span class="zutat">Eigelb</span><span class="menge">210g</span></li><li><span class="zutat">Milch (Staerke)</span><span class="menge">255g</span></li><li><span class="zutat">Weizenstärke</span><span class="menge">105g</span></li><div class="rzp-sec">Vanillecreme Schnee (pro Stück)</div><li><span class="zutat">Eiklar</span><span class="menge">360g</span></li><li><span class="zutat">Zucker</span><span class="menge">150g</span></li><li><span class="zutat">Salz</span><span class="menge">1.5g</span></li></ul></div></div></div><div class="task" onclick="toggleTask(this)"><div class="task-header"><span class="task-title-text">Lauch-Speck Quiche &mdash; 3 Stk<span class="badge badge-puffer">&#128993; Puffer aufbauen</span></span><span class="task-toggle">&#9660;</span></div><div class="task-body"><div class="task-note">Charge 2/9 → 1 frisch, 2 einfrieren</div><div class="task-zeit">&#9998; 1h &nbsp;|&nbsp; &#9201; 1h30min passiv</div><div class="recipe"><div class="recipe-title">Rezept fuer 3 Stk &mdash; 1x ansetzen</div><ul class="zutaten"><div class="rzp-sec">Dinkelhefeteig (pro Stück)</div><li><span class="zutat">Butter</span><span class="menge">54g</span></li><li><span class="zutat">Milch</span><span class="menge">240g</span></li><li><span class="zutat">Vollei</span><span class="menge">30g</span></li><li><span class="zutat">Hefe</span><span class="menge">24.9g</span></li><li><span class="zutat">Salz</span><span class="menge">12g</span></li><li><span class="zutat">Dinkelmehl</span><span class="menge">558g</span></li><div class="rzp-sec">Salzmasse (pro Stück)</div><li><span class="zutat">Vollei</span><span class="menge">495g</span></li><li><span class="zutat">Salz</span><span class="menge">45g</span></li><li><span class="zutat">Dinkelmehl</span><span class="menge">375g</span></li><li><span class="zutat">Saure Sahne</span><span class="menge">3000g</span></li><li><span class="zutat">Schmand</span><span class="menge">600g</span></li><li><span class="zutat">Lauch</span><span class="menge">600g</span></li><li><span class="zutat">Speck</span><span class="menge">450g</span></li></ul></div></div></div><div class="task" onclick="toggleTask(this)"><div class="task-header"><span class="task-title-text">Donauwelle &mdash; 6 Stk<span class="badge badge-puffer">&#128993; Puffer aufbauen</span></span><span class="task-toggle">&#9660;</span></div><div class="task-body"><div class="task-note">Charge 2/4 → 1 frisch, 5 einfrieren</div><div class="task-zeit">&#9998; 2h30min &nbsp;|&nbsp; &#9201; 4h50min passiv</div><div class="recipe"><div class="recipe-title">Rezept fuer 6 Stk &mdash; 1x ansetzen</div><ul class="zutaten"><div class="rzp-sec">Deutsche Buttercreme (pro Stück)</div><li><span class="zutat">Vanillecreme</span><span class="menge">2400g</span></li><li><span class="zutat">Butter</span><span class="menge">1200g</span></li><div class="rzp-sec">Überzugsganache (pro Stück)</div><li><span class="zutat">Sahne</span><span class="menge">412.8g</span></li><li><span class="zutat">Glukose</span><span class="menge">105g</span></li><li><span class="zutat">Callebaut dark</span><span class="menge">675g</span></li><div class="rzp-sec">Teig (pro Stück)</div><li><span class="zutat">Sandmasse hell</span><span class="menge">1800g</span></li><li><span class="zutat">Sandmasse dunkel</span><span class="menge">900g</span></li><div class="rzp-sec">Belag / Sonstiges (pro Stück)</div><li><span class="zutat">Mürbeteig 30x20cm</span><span class="menge">1x  (vorh. backen/vorbereiten)</span></li><li><span class="zutat">Sauerkirschen</span><span class="menge">1800g</span></li></ul></div><div class="sub-recipe"><div class="sub-recipe-title">Sub-Rezept: Vanillecreme &mdash; 4x Grundrezept (2944g gesamt)</div><ul class="zutaten"><li><span class="zutat">Milch</span><span class="menge">2000g</span></li><li><span class="zutat">Zucker</span><span class="menge">320g</span></li><li><span class="zutat">Milch (Stärke)</span><span class="menge">220g</span></li><li><span class="zutat">Eigelb</span><span class="menge">180g</span></li><li><span class="zutat">Weizenstärke</span><span class="menge">200g</span></li><li><span class="zutat">Vanillezucker</span><span class="menge">20g</span></li><li><span class="zutat">Salz</span><span class="menge">4g</span></li></ul></div><div class="sub-recipe"><div class="sub-recipe-title">Sub-Rezept: Sandmasse hell &mdash; 1x Grundrezept (1200g)</div><ul class="zutaten"><li><span class="zutat">Öl</span><span class="menge">230g</span></li><li><span class="zutat">Vollei</span><span class="menge">285g</span></li><li><span class="zutat">Magerquark</span><span class="menge">115g</span></li><li><span class="zutat">Zucker</span><span class="menge">265g</span></li><li><span class="zutat">Vanillezucker</span><span class="menge">20g</span></li><li><span class="zutat">Salz</span><span class="menge">2g</span></li><li><span class="zutat">Weizenstärke</span><span class="menge">130g</span></li><li><span class="zutat">Weizenmehl</span><span class="menge">145g</span></li><li><span class="zutat">Backpulver</span><span class="menge">8g</span></li></ul></div><div class="sub-recipe"><div class="sub-recipe-title">Sub-Rezept: Sandmasse dunkel &mdash; 1x Grundrezept (605g)</div><ul class="zutaten"><li><span class="zutat">Öl</span><span class="menge">115g</span></li><li><span class="zutat">Vollei</span><span class="menge">145g</span></li><li><span class="zutat">Magerquark</span><span class="menge">60g</span></li><li><span class="zutat">Zucker</span><span class="menge">145g</span></li><li><span class="zutat">Kakaopulver</span><span class="menge">15g</span></li><li><span class="zutat">Salz</span><span class="menge">1g</span></li><li><span class="zutat">Weizenstärke</span><span class="menge">60g</span></li><li><span class="zutat">Weizenmehl</span><span class="menge">60g</span></li><li><span class="zutat">Backpulver</span><span class="menge">4g</span></li></ul></div></div></div><div class="task" onclick="toggleTask(this)"><div class="task-header"><span class="task-title-text">Kaese-Rhabarber Schnitte &mdash; 6 Stk<span class="badge badge-notwendig">&#128308; Notwendig</span></span><span class="task-toggle">&#9660;</span></div><div class="task-body"><div class="task-note">Charge 1/4 — Pflicht (Donnerstag=mind. 1/Tag) → 1 frisch, 5 einfrieren</div><div class="task-zeit">&#9998; 1h30min &nbsp;|&nbsp; &#9201; 40min passiv</div><div class="recipe"><div class="recipe-title">Rezept fuer 3 Stk &mdash; heute 4x ansetzen</div><ul class="zutaten"><div class="rzp-sec">Amerikanische Käsemasse (pro Stück)</div><li><span class="zutat">Magerquark</span><span class="menge">2597.1g</span></li><li><span class="zutat">Vollei</span><span class="menge">867g</span></li><li><span class="zutat">Sahne</span><span class="menge">867g</span></li><li><span class="zutat">Zucker</span><span class="menge">431.4g</span></li><li><span class="zutat">Maisstärke</span><span class="menge">165.9g</span></li><li><span class="zutat">Salz</span><span class="menge">1.8g</span></li><li><span class="zutat">Vanillezucker</span><span class="menge">16.5g</span></li><li><span class="zutat">Zitronenaroma</span><span class="menge">3.3g</span></li><div class="rzp-sec">Belag & Boden (pro Stück)</div><li><span class="zutat">Mürbeteigboden 30x20cm</span><span class="menge">1x  (vorh. backen/vorbereiten)</span></li><li><span class="zutat">Streusel</span><span class="menge">600g</span></li><li><span class="zutat">Rhabarber</span><span class="menge">900g</span></li></ul></div></div></div><div class="task" onclick="toggleTask(this)"><div class="task-header"><span class="task-title-text">Kaese-Rhabarber Schnitte &mdash; 6 Stk<span class="badge badge-puffer">&#128993; Puffer aufbauen</span></span><span class="task-toggle">&#9660;</span></div><div class="task-body"><div class="task-note">Charge 3/4 → 1 frisch, 5 einfrieren</div><div class="task-zeit">&#9998; 1h30min &nbsp;|&nbsp; &#9201; 40min passiv</div></div></div>
+<div class="zeitbadge"><span>&#9998; Aktiv: 9h10min</span><span class="passiv">&#9201; Passiv: 14h</span></div><div class="task" data-tag="Donnerstag" data-key="Kaesekuchen" data-typ="produkt" data-plan-menge="4" data-recipe="{&quot;sections&quot;: [{&quot;name&quot;: &quot;Käsemasse (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Butter&quot;, &quot;m&quot;: 120.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Magerquark&quot;, &quot;m&quot;: 400.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Schmand&quot;, &quot;m&quot;: 400.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Eigelb&quot;, &quot;m&quot;: 95.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Milch&quot;, &quot;m&quot;: 360.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Zucker&quot;, &quot;m&quot;: 80.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Maisstärke&quot;, &quot;m&quot;: 95.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Zitronenaroma&quot;, &quot;m&quot;: 1.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Vanillearoma&quot;, &quot;m&quot;: 1.0, &quot;e&quot;: &quot;g&quot;}]}, {&quot;name&quot;: &quot;Baiserschnee (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Eiklar&quot;, &quot;m&quot;: 145.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Zucker&quot;, &quot;m&quot;: 120.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Salz&quot;, &quot;m&quot;: 1.0, &quot;e&quot;: &quot;g&quot;}]}, {&quot;name&quot;: &quot;Sonstiges (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Mürbeteigboden rund&quot;, &quot;m&quot;: &quot;1x&quot;, &quot;e&quot;: &quot;ref&quot;}, {&quot;z&quot;: &quot;Trennspray&quot;, &quot;m&quot;: 3.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Zucker (Tortenring)&quot;, &quot;m&quot;: 8.0, &quot;e&quot;: &quot;g&quot;}]}], &quot;max_charge&quot;: 2}"><div class="task-header" onclick="toggleTask(event,this)"><span class="task-title-text">Kaesekuchen &mdash; <span class="ist-menge">4</span> Stk<span class="badge badge-puffer">&#128993; Puffer aufbauen</span></span><span class="task-toggle">&#9660;</span></div><div class="task-body"><div class="task-note charge-note">Charge 5/12 + Charge 6/12</div><div class="task-zeit">&#9998; 40min &nbsp;|&nbsp; &#9201; 3h passiv</div><div class="recipe"><div class="recipe-title">Rezept fuer 2 Stk &mdash; heute 2x ansetzen</div><ul class="zutaten"><div class="rzp-sec">Käsemasse (pro Stück)</div><li><span class="zutat">Butter</span><span class="menge">240g</span></li><li><span class="zutat">Magerquark</span><span class="menge">800g</span></li><li><span class="zutat">Schmand</span><span class="menge">800g</span></li><li><span class="zutat">Eigelb</span><span class="menge">190g</span></li><li><span class="zutat">Milch</span><span class="menge">720g</span></li><li><span class="zutat">Zucker</span><span class="menge">160g</span></li><li><span class="zutat">Maisstärke</span><span class="menge">190g</span></li><li><span class="zutat">Zitronenaroma</span><span class="menge">2g</span></li><li><span class="zutat">Vanillearoma</span><span class="menge">2g</span></li><div class="rzp-sec">Baiserschnee (pro Stück)</div><li><span class="zutat">Eiklar</span><span class="menge">290g</span></li><li><span class="zutat">Zucker</span><span class="menge">240g</span></li><li><span class="zutat">Salz</span><span class="menge">2g</span></li><div class="rzp-sec">Sonstiges (pro Stück)</div><li><span class="zutat">Mürbeteigboden rund</span><span class="menge">1x  (vorh. backen/vorbereiten)</span></li><li><span class="zutat">Trennspray</span><span class="menge">6g</span></li><li><span class="zutat">Zucker (Tortenring)</span><span class="menge">16g</span></li></ul></div></div></div><div class="task" data-tag="Donnerstag" data-key="Bienenstich" data-typ="produkt" data-plan-menge="6" data-recipe="{&quot;sections&quot;: [{&quot;name&quot;: &quot;Hefeteig (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Weizenmehl&quot;, &quot;m&quot;: 220.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Zucker&quot;, &quot;m&quot;: 26.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Salz&quot;, &quot;m&quot;: 0.5, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Butter&quot;, &quot;m&quot;: 45.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Milch&quot;, &quot;m&quot;: 90.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Hefe&quot;, &quot;m&quot;: 14.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Vollei&quot;, &quot;m&quot;: 33.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Zitronenaroma&quot;, &quot;m&quot;: 1.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Vanillearoma&quot;, &quot;m&quot;: 1.0, &quot;e&quot;: &quot;g&quot;}]}, {&quot;name&quot;: &quot;Auflage (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Zucker&quot;, &quot;m&quot;: 30.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Honig&quot;, &quot;m&quot;: 30.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Butter&quot;, &quot;m&quot;: 50.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Sahne&quot;, &quot;m&quot;: 10.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Mandeln&quot;, &quot;m&quot;: 60.0, &quot;e&quot;: &quot;g&quot;}]}, {&quot;name&quot;: &quot;Vanillecreme Pudding (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Milch&quot;, &quot;m&quot;: 350.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Vanillezucker&quot;, &quot;m&quot;: 5.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Zucker&quot;, &quot;m&quot;: 45.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Eigelb&quot;, &quot;m&quot;: 70.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Milch (Staerke)&quot;, &quot;m&quot;: 85.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Weizenstärke&quot;, &quot;m&quot;: 35.0, &quot;e&quot;: &quot;g&quot;}]}, {&quot;name&quot;: &quot;Vanillecreme Schnee (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Eiklar&quot;, &quot;m&quot;: 120.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Zucker&quot;, &quot;m&quot;: 50.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Salz&quot;, &quot;m&quot;: 0.5, &quot;e&quot;: &quot;g&quot;}]}], &quot;max_charge&quot;: 3}"><div class="task-header" onclick="toggleTask(event,this)"><span class="task-title-text">Bienenstich &mdash; <span class="ist-menge">6</span> Stk<span class="badge badge-puffer">&#128993; Puffer aufbauen</span></span><span class="task-toggle">&#9660;</span></div><div class="task-body"><div class="task-note charge-note">Charge 2/4 → 1 frisch, 5 einfrieren</div><div class="task-zeit">&#9998; 2h &nbsp;|&nbsp; &#9201; 3h20min passiv</div><div class="recipe"><div class="recipe-title">Rezept fuer 3 Stk &mdash; heute 2x ansetzen</div><ul class="zutaten"><div class="rzp-sec">Hefeteig (pro Stück)</div><li><span class="zutat">Weizenmehl</span><span class="menge">660g</span></li><li><span class="zutat">Zucker</span><span class="menge">78g</span></li><li><span class="zutat">Salz</span><span class="menge">1.5g</span></li><li><span class="zutat">Butter</span><span class="menge">135g</span></li><li><span class="zutat">Milch</span><span class="menge">270g</span></li><li><span class="zutat">Hefe</span><span class="menge">42g</span></li><li><span class="zutat">Vollei</span><span class="menge">99g</span></li><li><span class="zutat">Zitronenaroma</span><span class="menge">3g</span></li><li><span class="zutat">Vanillearoma</span><span class="menge">3g</span></li><div class="rzp-sec">Auflage (pro Stück)</div><li><span class="zutat">Zucker</span><span class="menge">90g</span></li><li><span class="zutat">Honig</span><span class="menge">90g</span></li><li><span class="zutat">Butter</span><span class="menge">150g</span></li><li><span class="zutat">Sahne</span><span class="menge">30g</span></li><li><span class="zutat">Mandeln</span><span class="menge">180g</span></li><div class="rzp-sec">Vanillecreme Pudding (pro Stück)</div><li><span class="zutat">Milch</span><span class="menge">1050g</span></li><li><span class="zutat">Vanillezucker</span><span class="menge">15g</span></li><li><span class="zutat">Zucker</span><span class="menge">135g</span></li><li><span class="zutat">Eigelb</span><span class="menge">210g</span></li><li><span class="zutat">Milch (Staerke)</span><span class="menge">255g</span></li><li><span class="zutat">Weizenstärke</span><span class="menge">105g</span></li><div class="rzp-sec">Vanillecreme Schnee (pro Stück)</div><li><span class="zutat">Eiklar</span><span class="menge">360g</span></li><li><span class="zutat">Zucker</span><span class="menge">150g</span></li><li><span class="zutat">Salz</span><span class="menge">1.5g</span></li></ul></div></div></div><div class="task" data-tag="Donnerstag" data-key="Lauch-Speck Quiche" data-typ="produkt" data-plan-menge="3" data-recipe="{&quot;sections&quot;: [{&quot;name&quot;: &quot;Dinkelhefeteig (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Butter&quot;, &quot;m&quot;: 18.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Milch&quot;, &quot;m&quot;: 80.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Vollei&quot;, &quot;m&quot;: 10.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Hefe&quot;, &quot;m&quot;: 8.3, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Salz&quot;, &quot;m&quot;: 4.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Dinkelmehl&quot;, &quot;m&quot;: 186.0, &quot;e&quot;: &quot;g&quot;}]}, {&quot;name&quot;: &quot;Salzmasse (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Vollei&quot;, &quot;m&quot;: 165.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Salz&quot;, &quot;m&quot;: 15.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Dinkelmehl&quot;, &quot;m&quot;: 125.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Saure Sahne&quot;, &quot;m&quot;: 1000.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Schmand&quot;, &quot;m&quot;: 200.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Lauch&quot;, &quot;m&quot;: 200.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Speck&quot;, &quot;m&quot;: 150.0, &quot;e&quot;: &quot;g&quot;}]}], &quot;max_charge&quot;: 3}"><div class="task-header" onclick="toggleTask(event,this)"><span class="task-title-text">Lauch-Speck Quiche &mdash; <span class="ist-menge">3</span> Stk<span class="badge badge-puffer">&#128993; Puffer aufbauen</span></span><span class="task-toggle">&#9660;</span></div><div class="task-body"><div class="task-note charge-note">Charge 2/9 → 1 frisch, 2 einfrieren</div><div class="task-zeit">&#9998; 1h &nbsp;|&nbsp; &#9201; 1h30min passiv</div><div class="recipe"><div class="recipe-title">Rezept fuer 3 Stk &mdash; 1x ansetzen</div><ul class="zutaten"><div class="rzp-sec">Dinkelhefeteig (pro Stück)</div><li><span class="zutat">Butter</span><span class="menge">54g</span></li><li><span class="zutat">Milch</span><span class="menge">240g</span></li><li><span class="zutat">Vollei</span><span class="menge">30g</span></li><li><span class="zutat">Hefe</span><span class="menge">24.9g</span></li><li><span class="zutat">Salz</span><span class="menge">12g</span></li><li><span class="zutat">Dinkelmehl</span><span class="menge">558g</span></li><div class="rzp-sec">Salzmasse (pro Stück)</div><li><span class="zutat">Vollei</span><span class="menge">495g</span></li><li><span class="zutat">Salz</span><span class="menge">45g</span></li><li><span class="zutat">Dinkelmehl</span><span class="menge">375g</span></li><li><span class="zutat">Saure Sahne</span><span class="menge">3000g</span></li><li><span class="zutat">Schmand</span><span class="menge">600g</span></li><li><span class="zutat">Lauch</span><span class="menge">600g</span></li><li><span class="zutat">Speck</span><span class="menge">450g</span></li></ul></div></div></div><div class="task" data-tag="Donnerstag" data-key="Donauwelle" data-typ="produkt" data-plan-menge="6" data-recipe="{&quot;sections&quot;: [{&quot;name&quot;: &quot;Deutsche Buttercreme (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Vanillecreme&quot;, &quot;m&quot;: 400.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Butter&quot;, &quot;m&quot;: 200.0, &quot;e&quot;: &quot;g&quot;}]}, {&quot;name&quot;: &quot;Überzugsganache (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Sahne&quot;, &quot;m&quot;: 68.8, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Glukose&quot;, &quot;m&quot;: 17.5, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Callebaut dark&quot;, &quot;m&quot;: 112.5, &quot;e&quot;: &quot;g&quot;}]}, {&quot;name&quot;: &quot;Teig (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Sandmasse hell&quot;, &quot;m&quot;: 300.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Sandmasse dunkel&quot;, &quot;m&quot;: 150.0, &quot;e&quot;: &quot;g&quot;}]}, {&quot;name&quot;: &quot;Belag / Sonstiges (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Mürbeteig 30x20cm&quot;, &quot;m&quot;: &quot;1x&quot;, &quot;e&quot;: &quot;ref&quot;}, {&quot;z&quot;: &quot;Sauerkirschen&quot;, &quot;m&quot;: 300.0, &quot;e&quot;: &quot;g&quot;}]}], &quot;max_charge&quot;: 6}"><div class="task-header" onclick="toggleTask(event,this)"><span class="task-title-text">Donauwelle &mdash; <span class="ist-menge">6</span> Stk<span class="badge badge-puffer">&#128993; Puffer aufbauen</span></span><span class="task-toggle">&#9660;</span></div><div class="task-body"><div class="task-note charge-note">Charge 2/4 → 1 frisch, 5 einfrieren</div><div class="task-zeit">&#9998; 2h30min &nbsp;|&nbsp; &#9201; 4h50min passiv</div><div class="recipe"><div class="recipe-title">Rezept fuer 6 Stk &mdash; 1x ansetzen</div><ul class="zutaten"><div class="rzp-sec">Deutsche Buttercreme (pro Stück)</div><li><span class="zutat">Vanillecreme</span><span class="menge">2400g</span></li><li><span class="zutat">Butter</span><span class="menge">1200g</span></li><div class="rzp-sec">Überzugsganache (pro Stück)</div><li><span class="zutat">Sahne</span><span class="menge">412.8g</span></li><li><span class="zutat">Glukose</span><span class="menge">105g</span></li><li><span class="zutat">Callebaut dark</span><span class="menge">675g</span></li><div class="rzp-sec">Teig (pro Stück)</div><li><span class="zutat">Sandmasse hell</span><span class="menge">1800g</span></li><li><span class="zutat">Sandmasse dunkel</span><span class="menge">900g</span></li><div class="rzp-sec">Belag / Sonstiges (pro Stück)</div><li><span class="zutat">Mürbeteig 30x20cm</span><span class="menge">1x  (vorh. backen/vorbereiten)</span></li><li><span class="zutat">Sauerkirschen</span><span class="menge">1800g</span></li></ul></div><div class="sub-recipe"><div class="sub-recipe-title">Sub-Rezept: Vanillecreme &mdash; 4x Grundrezept (2944g gesamt)</div><ul class="zutaten"><li><span class="zutat">Milch</span><span class="menge">2000g</span></li><li><span class="zutat">Zucker</span><span class="menge">320g</span></li><li><span class="zutat">Milch (Stärke)</span><span class="menge">220g</span></li><li><span class="zutat">Eigelb</span><span class="menge">180g</span></li><li><span class="zutat">Weizenstärke</span><span class="menge">200g</span></li><li><span class="zutat">Vanillezucker</span><span class="menge">20g</span></li><li><span class="zutat">Salz</span><span class="menge">4g</span></li></ul></div><div class="sub-recipe"><div class="sub-recipe-title">Sub-Rezept: Sandmasse hell &mdash; 1x Grundrezept (1200g)</div><ul class="zutaten"><li><span class="zutat">Öl</span><span class="menge">230g</span></li><li><span class="zutat">Vollei</span><span class="menge">285g</span></li><li><span class="zutat">Magerquark</span><span class="menge">115g</span></li><li><span class="zutat">Zucker</span><span class="menge">265g</span></li><li><span class="zutat">Vanillezucker</span><span class="menge">20g</span></li><li><span class="zutat">Salz</span><span class="menge">2g</span></li><li><span class="zutat">Weizenstärke</span><span class="menge">130g</span></li><li><span class="zutat">Weizenmehl</span><span class="menge">145g</span></li><li><span class="zutat">Backpulver</span><span class="menge">8g</span></li></ul></div><div class="sub-recipe"><div class="sub-recipe-title">Sub-Rezept: Sandmasse dunkel &mdash; 1x Grundrezept (605g)</div><ul class="zutaten"><li><span class="zutat">Öl</span><span class="menge">115g</span></li><li><span class="zutat">Vollei</span><span class="menge">145g</span></li><li><span class="zutat">Magerquark</span><span class="menge">60g</span></li><li><span class="zutat">Zucker</span><span class="menge">145g</span></li><li><span class="zutat">Kakaopulver</span><span class="menge">15g</span></li><li><span class="zutat">Salz</span><span class="menge">1g</span></li><li><span class="zutat">Weizenstärke</span><span class="menge">60g</span></li><li><span class="zutat">Weizenmehl</span><span class="menge">60g</span></li><li><span class="zutat">Backpulver</span><span class="menge">4g</span></li></ul></div></div></div><div class="task" data-tag="Donnerstag" data-key="Kaese-Rhabarber Schnitte" data-typ="produkt" data-plan-menge="12" data-recipe="{&quot;sections&quot;: [{&quot;name&quot;: &quot;Amerikanische Käsemasse (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Magerquark&quot;, &quot;m&quot;: 865.7, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Vollei&quot;, &quot;m&quot;: 289.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Sahne&quot;, &quot;m&quot;: 289.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Zucker&quot;, &quot;m&quot;: 143.8, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Maisstärke&quot;, &quot;m&quot;: 55.3, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Salz&quot;, &quot;m&quot;: 0.6, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Vanillezucker&quot;, &quot;m&quot;: 5.5, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Zitronenaroma&quot;, &quot;m&quot;: 1.1, &quot;e&quot;: &quot;g&quot;}]}, {&quot;name&quot;: &quot;Belag & Boden (pro Stück)&quot;, &quot;zutaten&quot;: [{&quot;z&quot;: &quot;Mürbeteigboden 30x20cm&quot;, &quot;m&quot;: &quot;1x&quot;, &quot;e&quot;: &quot;ref&quot;}, {&quot;z&quot;: &quot;Streusel&quot;, &quot;m&quot;: 200.0, &quot;e&quot;: &quot;g&quot;}, {&quot;z&quot;: &quot;Rhabarber&quot;, &quot;m&quot;: 300.0, &quot;e&quot;: &quot;g&quot;}]}], &quot;max_charge&quot;: 3}"><div class="task-header" onclick="toggleTask(event,this)"><span class="task-title-text">Kaese-Rhabarber Schnitte &mdash; <span class="ist-menge">12</span> Stk<span class="badge badge-notwendig">&#128308; Notwendig</span></span><span class="task-toggle">&#9660;</span></div><div class="task-body"><div class="task-note charge-note">Charge 1/4 — Pflicht (Donnerstag=mind. 1/Tag) → 1 frisch, 5 einfrieren + Charge 3/4 → 1 frisch, 5 einfrieren</div><div class="task-zeit">&#9998; 3h &nbsp;|&nbsp; &#9201; 1h20min passiv</div><div class="recipe"><div class="recipe-title">Rezept fuer 3 Stk &mdash; heute 4x ansetzen</div><ul class="zutaten"><div class="rzp-sec">Amerikanische Käsemasse (pro Stück)</div><li><span class="zutat">Magerquark</span><span class="menge">2597.1g</span></li><li><span class="zutat">Vollei</span><span class="menge">867g</span></li><li><span class="zutat">Sahne</span><span class="menge">867g</span></li><li><span class="zutat">Zucker</span><span class="menge">431.4g</span></li><li><span class="zutat">Maisstärke</span><span class="menge">165.9g</span></li><li><span class="zutat">Salz</span><span class="menge">1.8g</span></li><li><span class="zutat">Vanillezucker</span><span class="menge">16.5g</span></li><li><span class="zutat">Zitronenaroma</span><span class="menge">3.3g</span></li><div class="rzp-sec">Belag & Boden (pro Stück)</div><li><span class="zutat">Mürbeteigboden 30x20cm</span><span class="menge">1x  (vorh. backen/vorbereiten)</span></li><li><span class="zutat">Streusel</span><span class="menge">600g</span></li><li><span class="zutat">Rhabarber</span><span class="menge">900g</span></li></ul></div></div></div>
 <div class="ek-panel"><div class="ek-title">&#128722; Einkaufsliste Donnerstag</div><table class="ek-table"><thead><tr><th>Zutat</th><th>Menge</th><th>Kosten</th></tr></thead><tbody><tr><td class="z-name">Butter</td><td class="z-menge">2.30 kg</td><td class="z-kosten">11.41 &euro;</td></tr><tr><td class="z-name">Callebaut dark</td><td class="z-menge">0.68 kg</td><td class="z-kosten">11.14 &euro;</td></tr><tr><td class="z-name">Dinkelmehl 630</td><td class="z-menge">0.93 kg</td><td class="z-kosten">2.10 &euro;</td></tr><tr><td class="z-name">Eigelb</td><td class="z-menge">0.80 kg</td><td class="z-kosten">9.80 &euro;</td></tr><tr><td class="z-name">Eiklar</td><td class="z-menge">1.30 kg</td><td class="z-kosten">4.89 &euro;</td></tr><tr><td class="z-name">Glukose</td><td class="z-menge">0.10 kg</td><td class="z-kosten">0.42 &euro;</td></tr><tr><td class="z-name">Hefe</td><td class="z-menge">0.11 kg</td><td class="z-kosten">0.54 &euro;</td></tr><tr><td class="z-name">Honig</td><td class="z-menge">0.18 kg</td><td class="z-kosten">1.10 &euro;</td></tr><tr><td class="z-name">Lauch</td><td class="z-menge">0.60 kg</td><td class="z-kosten">0.80 &euro;</td></tr><tr><td class="z-name">Magerquark</td><td class="z-menge">11.99 kg</td><td class="z-kosten">22.06 &euro;</td></tr><tr><td class="z-name">Maisstärke</td><td class="z-menge">1.04 kg</td><td class="z-kosten">4.99 &euro;</td></tr><tr><td class="z-name">Mandeln gehobelt</td><td class="z-menge">0.36 kg</td><td class="z-kosten">5.00 &euro;</td></tr><tr><td class="z-name">Milch</td><td class="z-menge">4.83 kg</td><td class="z-kosten">4.76 &euro;</td></tr><tr><td class="z-name">Rhabarber</td><td class="z-menge">3.60 kg</td><td class="z-kosten">&ndash;</td></tr><tr><td class="z-name">Sahne</td><td class="z-menge">3.94 kg</td><td class="z-kosten">12.22 &euro;</td></tr><tr><td class="z-name">Salz</td><td class="z-menge">74 g</td><td class="z-kosten">0.02 &euro;</td></tr><tr><td class="z-name">Sauerkirschen</td><td class="z-menge">1.80 kg</td><td class="z-kosten">20.92 &euro;</td></tr><tr><td class="z-name">Saure Sahne</td><td class="z-menge">3.00 kg</td><td class="z-kosten">5.50 &euro;</td></tr><tr><td class="z-name">Schmand</td><td class="z-menge">2.20 kg</td><td class="z-kosten">6.93 &euro;</td></tr><tr><td class="z-name">Speck</td><td class="z-menge">0.45 kg</td><td class="z-kosten">6.03 &euro;</td></tr><tr><td class="z-name">Trennspray</td><td class="z-menge">12 g</td><td class="z-kosten">&ndash;</td></tr><tr><td class="z-name">Vanillearoma</td><td class="z-menge">10 g</td><td class="z-kosten">0.20 &euro;</td></tr><tr><td class="z-name">Vanillezucker</td><td class="z-menge">96 g</td><td class="z-kosten">4.97 &euro;</td></tr><tr><td class="z-name">Vollei</td><td class="z-menge">4.19 kg</td><td class="z-kosten">24.14 &euro;</td></tr><tr><td class="z-name">Weizenmehl</td><td class="z-menge">1.32 kg</td><td class="z-kosten">0.92 &euro;</td></tr><tr><td class="z-name">Weizenstärke</td><td class="z-menge">0.21 kg</td><td class="z-kosten">1.08 &euro;</td></tr><tr><td class="z-name">Zitronenaroma</td><td class="z-menge">23 g</td><td class="z-kosten">0.46 &euro;</td></tr><tr><td class="z-name">Zucker</td><td class="z-menge">3.46 kg</td><td class="z-kosten">3.08 &euro;</td></tr></tbody><tfoot><tr class="ek-total"><td colspan="2">Gesamtkosten</td><td class="z-kosten">165.49 &euro;</td></tr></tfoot></table></div>
 <div class="footer">Kuchenproduktion &middot; KW 22</div>
-<script>function toggleTask(el){var wasCollapsed=el.classList.contains('collapsed');el.classList.toggle('collapsed');if(el.classList.contains('done')&&!wasCollapsed){el.classList.remove('done');}saveState();}function markDone(el,e){e.stopPropagation();el.classList.toggle('done');if(!el.classList.contains('done')){el.classList.remove('collapsed');}else{el.classList.add('collapsed');}saveState();}function saveState(){var states={};document.querySelectorAll('.task[data-id]').forEach(function(el){states[el.dataset.id]=(el.classList.contains('collapsed')?'c':'')+(el.classList.contains('done')?'d':'');});try{localStorage.setItem('tp_'+location.pathname,JSON.stringify(states));}catch(e){}}document.addEventListener('DOMContentLoaded',function(){var idx=0;document.querySelectorAll('.task').forEach(function(el){el.dataset.id='t'+(idx++);var btn=document.createElement('button');btn.className='done-btn';btn.title='Erledigt markieren';btn.innerHTML='&#10003;';btn.onclick=function(e){markDone(el,e);};var hdr=el.querySelector('.task-header');if(hdr)hdr.appendChild(btn);});try{var states=JSON.parse(localStorage.getItem('tp_'+location.pathname)||'{}');document.querySelectorAll('.task[data-id]').forEach(function(el){var s=states[el.dataset.id]||'';if(s.indexOf('c')>=0)el.classList.add('collapsed');if(s.indexOf('d')>=0)el.classList.add('done','collapsed');});}catch(e){}});</script></body></html>
+<script>
+(function(){
+var DAYS=['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+var IST={kw:'',tage:{},_sha:null};
+var KW='';
+
+function cfg(k){return localStorage.getItem('kp_'+k)||'';}
+function ghBase(){return 'https://api.github.com/repos/'+cfg('owner')+'/'+cfg('repo');}
+function ghReady(){return cfg('owner')&&cfg('repo')&&cfg('token');}
+
+function getKW(){
+  var dt=document.querySelector('.datum');
+  if(dt){
+    var m=dt.textContent.match(/KW\s*(\d+)/i);
+    var ym=dt.textContent.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+    if(m){
+      var jahr=ym?ym[3]:String(new Date().getFullYear());
+      var w=m[1]; if(w.length<2) w='0'+w;
+      return jahr+'-'+w;
+    }
+  }
+  return String(new Date().getFullYear())+'-00';
+}
+
+function showToast(msg,kind){
+  var d=document.createElement('div');
+  d.className='ip-toast '+(kind||'');
+  d.textContent=msg;
+  document.body.appendChild(d);
+  setTimeout(function(){d.classList.add('show');},10);
+  setTimeout(function(){d.classList.remove('show');setTimeout(function(){d.remove();},300);},2200);
+}
+
+function setIst(tag,key,fields){
+  if(!IST.tage[tag]) IST.tage[tag]={};
+  if(!IST.tage[tag][key]) IST.tage[tag][key]={};
+  Object.assign(IST.tage[tag][key],fields);
+}
+function getIst(tag,key){
+  return (IST.tage[tag]||{})[key]||{};
+}
+
+window.toggleTask=function(e,hdrEl){
+  if(e && e.target){
+    var tgt=e.target;
+    if(tgt.closest('.done-btn,.gear-btn,.gear-panel,input,select,button')) return;
+  }
+  var el=hdrEl.closest('.task');
+  if(el) el.classList.toggle('collapsed');
+};
+
+window.markDone=function(e,btn){
+  e.stopPropagation();
+  var el=btn.closest('.task');
+  el.classList.toggle('done');
+  var isDone=el.classList.contains('done');
+  if(isDone){
+    el.classList.add('collapsed');
+    var rec=getIst(el.dataset.tag,el.dataset.key);
+    if(typeof rec.ist_menge!=='number'){
+      setIst(el.dataset.tag,el.dataset.key,{ist_menge:parseFloat(el.dataset.planMenge)});
+    }
+    setIst(el.dataset.tag,el.dataset.key,{erledigt:true});
+  }else{
+    el.classList.remove('collapsed');
+    setIst(el.dataset.tag,el.dataset.key,{erledigt:false});
+  }
+  saveIst();
+};
+
+window.openGear=function(e,btn){
+  e.stopPropagation();
+  var el=btn.closest('.task');
+  var panel=el.querySelector('.gear-panel');
+  if(!panel) return;
+  if(panel.style.display==='block'){panel.style.display='none';return;}
+  var rec=getIst(el.dataset.tag,el.dataset.key);
+  var stkInp=panel.querySelector('.stk-input');
+  var cur=(typeof rec.ist_menge==='number')?rec.ist_menge:parseFloat(el.dataset.planMenge);
+  stkInp.value=cur;
+  var daySel=panel.querySelector('.day-select');
+  daySel.value=rec.verschoben_nach||el.dataset.tag;
+  panel.style.display='block';
+  el.classList.remove('collapsed');
+};
+
+window.saveGearChanges=function(btn){
+  var panel=btn.closest('.gear-panel');
+  var el=panel.closest('.task');
+  var stk=parseFloat(panel.querySelector('.stk-input').value);
+  if(isNaN(stk)||stk<0) stk=0;
+  applyStk(el,stk);
+  applyVerschieben(el,panel.querySelector('.day-select').value);
+  panel.style.display='none';
+  saveIst();
+};
+
+window.cancelGear=function(btn){
+  btn.closest('.gear-panel').style.display='none';
+};
+
+function applyStk(el,newStk){
+  setIst(el.dataset.tag,el.dataset.key,{ist_menge:newStk});
+  setStkDisplay(el,newStk);
+}
+
+function applyVerschieben(el,newTag){
+  if(newTag===el.dataset.tag){
+    setIst(el.dataset.tag,el.dataset.key,{verschoben_nach:null});
+    el.classList.remove('verschoben');
+    var b=el.querySelector('.verschoben-banner');if(b)b.remove();
+  }else{
+    setIst(el.dataset.tag,el.dataset.key,{verschoben_nach:newTag});
+    el.classList.add('verschoben');
+    addVerschobenBanner(el,'auf '+newTag);
+  }
+}
+
+function addVerschobenBanner(el,txt){
+  var existing=el.querySelector('.verschoben-banner');
+  if(existing) existing.remove();
+  var b=document.createElement('div');
+  b.className='verschoben-banner';
+  b.textContent='↪ Verschoben '+txt;
+  var body=el.querySelector('.task-body');
+  if(body) body.insertBefore(b,body.firstChild);
+}
+
+function setStkDisplay(el,newStk){
+  el.querySelectorAll('.ist-menge').forEach(function(s){s.textContent=newStk;});
+  var rcpStr=el.dataset.recipe;
+  if(rcpStr){
+    try{renderRecipe(el,JSON.parse(rcpStr),newStk);}catch(e){console.warn('recipe',e);}
+  }
+  var subStr=el.dataset.subrecipe;
+  if(subStr){
+    try{renderSubRecipes(el,JSON.parse(subStr),newStk);}catch(e){console.warn('subrecipe',e);}
+  }
+  if(newStk<=0){el.classList.add('ist-null');}
+  else{el.classList.remove('ist-null');}
+}
+
+function fmtGramm(v){
+  v=Math.round(v*10)/10;
+  return (v===Math.floor(v))?Math.floor(v)+'g':v+'g';
+}
+
+function renderRecipe(el,rcp,stk){
+  var rec=el.querySelector('.recipe');
+  if(!rec || !rcp.sections) return;
+  var ul=rec.querySelector('.zutaten');
+  if(!ul) return;
+  var html='';
+  rcp.sections.forEach(function(sec){
+    if(rcp.sections.length>1 && sec.name){
+      html+='<div class="rzp-sec">'+sec.name+'</div>';
+    }
+    sec.zutaten.forEach(function(z){
+      if(z.e==='ref'){
+        html+='<li><span class="zutat">'+z.z+'</span><span class="menge">'+z.m+'  (vorh. backen/vorbereiten)</span></li>';
+      }else{
+        html+='<li><span class="zutat">'+z.z+'</span><span class="menge">'+fmtGramm(z.m*stk)+'</span></li>';
+      }
+    });
+  });
+  ul.innerHTML=html;
+  var t=rec.querySelector('.recipe-title');
+  if(t){
+    var mx=rcp.max_charge||1;
+    var nMal=mx>0?Math.ceil(stk/mx):1;
+    var batch=Math.min(mx,stk);
+    if(stk<=0){t.innerHTML='Rezept (Ist-Menge: 0)';return;}
+    var title=(batch>1?'Rezept fuer '+batch+' Stk':'Grundrezept (1 Stk)');
+    title+=' &mdash; '+(nMal>1?'heute '+nMal+'x ansetzen':'1x ansetzen');
+    t.innerHTML=title;
+  }
+}
+
+function renderSubRecipes(el,subs,stk){
+  Object.keys(subs).forEach(function(key){
+    var rcp=subs[key];
+    el.querySelectorAll('.sub-recipe').forEach(function(b){
+      var title=b.querySelector('.sub-recipe-title');
+      if(!title) return;
+      if(title.textContent.toUpperCase().indexOf(key.toUpperCase())<0) return;
+      var ul=b.querySelector('.zutaten');
+      if(!ul) return;
+      var html='';
+      rcp.sections.forEach(function(sec){
+        sec.zutaten.forEach(function(z){
+          html+='<li><span class="zutat">'+z.z+'</span><span class="menge">'+fmtGramm(z.m*stk)+'</span></li>';
+        });
+      });
+      ul.innerHTML=html;
+    });
+  });
+}
+
+function applyIst(){
+  document.querySelectorAll('.task[data-tag][data-key]').forEach(function(el){
+    var rec=getIst(el.dataset.tag,el.dataset.key);
+    if(rec.erledigt){el.classList.add('done','collapsed');}
+    if(typeof rec.ist_menge==='number' && rec.ist_menge!==parseFloat(el.dataset.planMenge)){
+      setStkDisplay(el,rec.ist_menge);
+    }
+    if(rec.verschoben_nach){
+      el.classList.add('verschoben');
+      addVerschobenBanner(el,'auf '+rec.verschoben_nach);
+    }
+    if(rec.verschoben_von){
+      addVerschobenBanner(el,'von '+rec.verschoben_von);
+    }
+  });
+}
+
+async function loadIst(){
+  KW=getKW();
+  if(!ghReady()){
+    var indicator=document.getElementById('ip-status');
+    if(indicator){indicator.textContent='⚠ GitHub-Login fehlt — Status wird nicht gespeichert';indicator.className='ip-status warn';}
+    return;
+  }
+  try{
+    var r=await fetch(ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json?ref=main',{
+      headers:{Authorization:'Bearer '+cfg('token'),Accept:'application/vnd.github+json'}
+    });
+    if(r.status===404){
+      var ind=document.getElementById('ip-status');
+      if(ind){ind.textContent='Tracking aktiv (KW '+KW+')';ind.className='ip-status ok';}
+      return;
+    }
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    var j=await r.json();
+    IST._sha=j.sha;
+    var content=atob(j.content.replace(/\s/g,''));
+    var data=JSON.parse(decodeURIComponent(escape(content)));
+    IST.kw=data.kw||KW;
+    IST.tage=data.tage||{};
+    applyIst();
+    var ind2=document.getElementById('ip-status');
+    if(ind2){ind2.textContent='Tracking aktiv (KW '+KW+')';ind2.className='ip-status ok';}
+  }catch(e){
+    console.warn('ist_produktion laden:',e);
+    var ind=document.getElementById('ip-status');
+    if(ind){ind.textContent='⚠ Fehler beim Laden: '+e.message;ind.className='ip-status warn';}
+  }
+}
+
+var _saveDebounce=null;
+async function saveIst(){
+  clearTimeout(_saveDebounce);
+  _saveDebounce=setTimeout(_doSaveIst,400);
+}
+
+async function _doSaveIst(){
+  if(!ghReady()){showToast('GitHub-Login fehlt','error');return;}
+  try{
+    var getR=await fetch(ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json?ref=main',{
+      headers:{Authorization:'Bearer '+cfg('token'),Accept:'application/vnd.github+json'}
+    });
+    if(getR.ok){var gj=await getR.json();IST._sha=gj.sha;}
+    else if(getR.status===404){IST._sha=null;}
+  }catch(e){}
+  var payload={kw:KW,_format:1,_updated:new Date().toISOString(),tage:IST.tage};
+  var jsonStr=JSON.stringify(payload,null,2);
+  var b64=btoa(unescape(encodeURIComponent(jsonStr)));
+  var body={message:'ist_produktion KW '+KW+' aktualisiert',content:b64};
+  if(IST._sha) body.sha=IST._sha;
+  try{
+    var r=await fetch(ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json',{
+      method:'PUT',
+      headers:{Authorization:'Bearer '+cfg('token'),Accept:'application/vnd.github+json','Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(!r.ok){var er=await r.json();throw new Error(er.message||'HTTP '+r.status);}
+    var rj=await r.json();IST._sha=rj.content.sha;
+    showToast('Gespeichert','success');
+  }catch(e){
+    showToast('Speichern: '+e.message,'error');
+  }
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  // Status-Indikator
+  var status=document.createElement('div');
+  status.id='ip-status';
+  status.className='ip-status';
+  status.textContent='Verbinde...';
+  var h1=document.querySelector('h1');
+  if(h1 && h1.parentNode){h1.parentNode.insertBefore(status,h1.nextSibling);}
+  // Tasks mit Buttons + Panel ausstatten
+  document.querySelectorAll('.task[data-tag][data-key]').forEach(function(el){
+    var hdr=el.querySelector('.task-header');
+    if(hdr){
+      var dbtn=document.createElement('button');
+      dbtn.className='done-btn';dbtn.title='Erledigt';dbtn.innerHTML='&#10003;';
+      dbtn.onclick=function(e){markDone(e,dbtn);};
+      var gbtn=document.createElement('button');
+      gbtn.className='gear-btn';gbtn.title='Einstellungen';gbtn.innerHTML='&#9881;';
+      gbtn.onclick=function(e){openGear(e,gbtn);};
+      var toggle=hdr.querySelector('.task-toggle');
+      if(toggle){
+        hdr.insertBefore(gbtn,toggle);
+        hdr.insertBefore(dbtn,toggle);
+      }else{
+        hdr.appendChild(dbtn);hdr.appendChild(gbtn);
+      }
+    }
+    var panel=document.createElement('div');
+    panel.className='gear-panel';
+    panel.style.display='none';
+    panel.onclick=function(e){e.stopPropagation();};
+    var planM=el.dataset.planMenge||'0';
+    var curTag=el.dataset.tag;
+    var dayOpts=DAYS.map(function(d){
+      return '<option value="'+d+'"'+(d===curTag?' selected':'')+'>'+d+'</option>';
+    }).join('');
+    panel.innerHTML=
+      '<div class="gear-row"><label>Stueckzahl: <input type="number" class="stk-input" min="0" step="1" value="'+planM+'"></label> <span class="gear-hint">(Plan: '+planM+')</span></div>'+
+      '<div class="gear-row"><label>Verschieben auf: <select class="day-select">'+dayOpts+'</select></label></div>'+
+      '<div class="gear-row gear-actions"><button class="gear-save" onclick="saveGearChanges(this)">Übernehmen</button>'+
+      '<button class="gear-cancel" onclick="cancelGear(this)">Abbrechen</button></div>';
+    el.appendChild(panel);
+  });
+  loadIst();
+});
+})();
+</script></body></html>
