@@ -2962,7 +2962,12 @@ async function loadIst(){
     return;
   }
   try{
+    // cache:'no-store' bypassiert den Browser-Cache. GitHubs API liefert
+    // ihre Antworten mit Cache-Control: private,max-age=60 — ohne diese
+    // Option zeigt der Browser nach dem Navigieren weg+zurueck bis zu 60s
+    // lang die alte ist_produktion-JSON (ohne die gerade gespeicherte Aenderung).
     var r=await fetch(ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json',{
+      cache:'no-store',
       headers:{Authorization:'Bearer '+cfg('token'),Accept:'application/vnd.github+json'}
     });
     if(r.status===404){
@@ -3001,6 +3006,7 @@ async function saveIst(){
 async function _fetchCurrentSha(){
   try{
     var r=await fetch(ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json',{
+      cache:'no-store',  // gleiche Begruendung wie in loadIst — keine alte SHA aus dem Browser-Cache.
       headers:{Authorization:'Bearer '+cfg('token'),Accept:'application/vnd.github+json'}
     });
     if(r.ok){var j=await r.json();return j.sha;}
