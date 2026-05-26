@@ -1,7 +1,7 @@
 {
   "kw": "2026-22",
   "_format": 1,
-  "_updated": "2026-05-26T18:03:02.535848",
+  "_updated": "2026-05-26T18:04:32.520075",
   "tage": {
     "Dienstag": [
       {
@@ -97,6 +97,12 @@
         "menge": 6,
         "aktiv_min": 150,
         "passiv_min": 290
+      },
+      {
+        "produkt_key": "Kaese-Rhabarber Schnitte",
+        "menge": 6,
+        "aktiv_min": 90,
+        "passiv_min": 40
       },
       {
         "produkt_key": "Kaese-Rhabarber Schnitte",
