@@ -2017,7 +2017,95 @@ def erstelle_excel(bedarf, murt, wplan):
     wb.save(fname); print("Wochenuebersicht: {}".format(fname.name)); return fname
 
 
-def erstelle_html_wochenuebersicht(bedarf, murt, wplan, rolling, tages_info):
+def aktuelle_kw_label():
+    """Aktuelle Kalenderwoche als 'YYYY-WW' Label (passend zu ist_produktion_KW*.json)."""
+    iso = datetime.now().isocalendar()
+    return "{}-{:02d}".format(iso[0], iso[1])
+
+
+def lese_ist_produktion(kw_label=None):
+    """Liest Wochenplan/ist_produktion_KW{}.json (vom Tagesplan-UI gepflegt).
+
+    Schema: {kw, _format:1, tage:{Montag:{Kaesekuchen:{ist_menge, erledigt, verschoben_nach}}}}
+    Returns: {tag: {produkt_key: rec}} oder {} wenn Datei fehlt/defekt.
+    """
+    if kw_label is None:
+        kw_label = aktuelle_kw_label()
+    pfad = OUTPUT_PFAD / "ist_produktion_KW{}.json".format(kw_label)
+    if not pfad.exists():
+        return {}
+    try:
+        with open(pfad, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("tage", {}) or {}
+    except (json.JSONDecodeError, IOError, OSError):
+        return {}
+
+
+def lese_wplan_kw(kw_label=None):
+    """Liest die zuletzt vom Planer geschriebene wplan-Snapshot der Woche.
+    Wird genutzt, um vergangene Tage in der Wochenmatrix zu rekonstruieren,
+    wenn der current wplan fuer diese Tage leer ist.
+
+    Returns: {tag: [{produkt_key, menge, aktiv_min, passiv_min}, ...]} oder {}.
+    """
+    if kw_label is None:
+        kw_label = aktuelle_kw_label()
+    pfad = OUTPUT_PFAD / "wplan_KW{}.json".format(kw_label)
+    if not pfad.exists():
+        return {}
+    try:
+        with open(pfad, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("tage", {}) or {}
+    except (json.JSONDecodeError, IOError, OSError):
+        return {}
+
+
+def speichere_wplan_kw(wplan, vtage=None):
+    """Schreibt Wochenplan/wplan_KW{}.json. Nur Tage in vtage werden ueberschrieben;
+    Eintraege fuer vergangene Tage aus frueheren Laeufen dieser Woche bleiben
+    erhalten. So sammelt der Snapshot ueber die Woche hinweg den jeweils
+    aktuellsten Plan jedes Tages.
+    """
+    kw_label = aktuelle_kw_label()
+    pfad = OUTPUT_PFAD / "wplan_KW{}.json".format(kw_label)
+    bestehend = lese_wplan_kw(kw_label)
+    tage = dict(bestehend)
+    aktive = set(vtage or [])
+    for tag, aufgaben in (wplan or {}).items():
+        if aktive and tag not in aktive:
+            continue
+        relevante = []
+        for a in (aufgaben or []):
+            if a.get("excel_only"):
+                continue
+            pk = a.get("produkt_key")
+            menge = int(a.get("menge", 0) or 0)
+            if not pk or menge <= 0:
+                continue
+            relevante.append({
+                "produkt_key": pk,
+                "menge": menge,
+                "aktiv_min": int(a.get("aktiv_min", 0) or 0),
+                "passiv_min": int(a.get("passiv_min", 0) or 0),
+            })
+        tage[tag] = relevante  # leer = nichts an dem Tag geplant
+    payload = {
+        "kw": kw_label,
+        "_format": 1,
+        "_updated": datetime.now().isoformat(),
+        "tage": tage,
+    }
+    try:
+        with open(pfad, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+        print("Wplan-Snapshot: {}".format(pfad.name))
+    except (IOError, OSError) as e:
+        print("WARN: wplan-Snapshot konnte nicht geschrieben werden: {}".format(e))
+
+
+def erstelle_html_wochenuebersicht(bedarf, murt, wplan, rolling, tages_info, vtage=None):
     """Generiert Wochenplan/Wochenuebersicht.html fuer mobilen Zugriff."""
     FARBEN = {
         "Montag":    ("#E2EFDA","#375623"),
@@ -2061,6 +2149,12 @@ def erstelle_html_wochenuebersicht(bedarf, murt, wplan, rolling, tages_info):
     html.append('.matrix th,.matrix td{padding:5px 6px;text-align:center;border-bottom:1px solid #f3f3f3}')
     html.append('.matrix th{font-weight:600;color:#555;background:#fafafa}.matrix td:first-child,.matrix th:first-child{text-align:left;font-weight:500;color:#333}')
     html.append('.matrix .z{color:#bbb}.matrix .sum{font-weight:700;color:#1B5FAB;background:#f7fafd}')
+    # Erledigt = gruene Zahl auf hellgruenem Hintergrund. "mod" = vom User geaendert.
+    html.append('.matrix td.done{background:#E8F5EA}.matrix td.done b{color:#2D8B3E}')
+    html.append('.matrix td.mod{position:relative}.matrix td.mod::after{content:"\\270e";position:absolute;top:1px;right:3px;font-size:9px;color:#999}')
+    html.append('.matrix td.past{background-image:linear-gradient(135deg,transparent 0,transparent 6px,#f5f5f5 6px,#f5f5f5 7px,transparent 7px,transparent 12px,#f5f5f5 12px,#f5f5f5 13px)}')
+    html.append('.matrix-legend{margin:4px 12px 0;font-size:10px;color:#888;text-align:right}')
+    html.append('.matrix-legend .lg-done{color:#2D8B3E;font-weight:700;background:#E8F5EA;padding:0 4px;border-radius:3px}')
     html.append('</style></head><body>')
 
     html.append('<div class="header"><h1>&#128197; Wochenuebersicht</h1>')
@@ -2081,21 +2175,100 @@ def erstelle_html_wochenuebersicht(bedarf, murt, wplan, rolling, tages_info):
                     'Mit <code>System/lerne_woche.py</code> Wochen einlernen.</div>')
 
     # ── Chargen-Matrix Produkt x Tag ───────────────────────────────────────
-    # Aggregiert Stueckzahlen + Chargenzahlen aus wplan und zeigt sie als
-    # kompakte Tabelle. Zelle leer wenn nichts an dem Tag fuer das Produkt.
-    matrix = {}  # {produkt_key: {tag: (stk, chargen)}}
+    # Logik:
+    #   1) Plan-Basis pro (Tag, Produkt) sammeln:
+    #      - Aktive Tage (in vtage): aus current wplan
+    #      - Vergangene Tage: aus gespeichertem wplan_KW snapshot
+    #   2) ist_produktion-Overlay drueberlegen: ist_menge ersetzt Plan-Menge,
+    #      verschoben_nach verschiebt Eintrag auf Zieltag, erledigt-Flag
+    #      markiert Zelle gruen.
+    #   3) Chargen pro Zelle aus PRODUKT_CONFIG.max_ofen neu berechnen,
+    #      damit eine geaenderte Menge auch die Chargenzahl korrekt zeigt.
+    vtage_set       = set(vtage or [])
+    saved_wplan_kw  = lese_wplan_kw()
+    ist_produktion  = lese_ist_produktion()
+
+    # plan[(tag, pk)] = Plan-Stueckzahl
+    plan = defaultdict(int)
     for tag in ARBEITSTAGE:
-        for a in wplan.get(tag, []):
+        if tag in vtage_set:
+            quelle = wplan.get(tag, [])
+        else:
+            quelle = saved_wplan_kw.get(tag, [])
+        for a in (quelle or []):
             pk = a.get("produkt_key")
             if not pk or a.get("excel_only"): continue
             if pk not in PRODUKT_CONFIG: continue
-            stk = int(a.get("menge",0) or 0)
-            if stk <= 0: continue
-            row = matrix.setdefault(pk, {t:[0,0] for t in ARBEITSTAGE})
-            row[tag][0] += stk
-            row[tag][1] += 1
+            stk = int(a.get("menge", 0) or 0)
+            if stk > 0:
+                plan[(tag, pk)] += stk
+
+    # finale[(tag, pk)] = {stk, erledigt, geaendert}
+    finale = {}
+    for key, stk in plan.items():
+        finale[key] = {"stk": stk, "erledigt": False, "geaendert": False}
+
+    # Overlay aus ist_produktion: Menge, Erledigt-Flag, Verschiebung
+    for tag, eintraege in (ist_produktion or {}).items():
+        if tag not in ARBEITSTAGE: continue
+        for pk, rec in (eintraege or {}).items():
+            if pk not in PRODUKT_CONFIG: continue
+            if not isinstance(rec, dict): continue
+            verschoben_nach = rec.get("verschoben_nach")
+            ist_menge       = rec.get("ist_menge")
+            erledigt        = bool(rec.get("erledigt"))
+            key = (tag, pk)
+
+            if verschoben_nach and verschoben_nach in ARBEITSTAGE:
+                # Quelle entfernen, Ziel hinzufuegen
+                quell_menge = (int(ist_menge) if isinstance(ist_menge, (int, float))
+                               else plan.get(key, 0))
+                if key in finale:
+                    del finale[key]
+                if quell_menge > 0:
+                    ziel_key = (verschoben_nach, pk)
+                    zelle = finale.setdefault(ziel_key,
+                        {"stk": 0, "erledigt": False, "geaendert": True})
+                    zelle["stk"] += quell_menge
+                    zelle["geaendert"] = True
+                    if erledigt:
+                        zelle["erledigt"] = True
+                continue
+
+            # Normaler Overlay (kein Verschieben)
+            zelle = finale.get(key)
+            if zelle is None:
+                if isinstance(ist_menge, (int, float)) and ist_menge > 0:
+                    finale[key] = {"stk": int(ist_menge),
+                                   "erledigt": erledigt, "geaendert": True}
+                elif erledigt and plan.get(key, 0) > 0:
+                    finale[key] = {"stk": plan[key],
+                                   "erledigt": True, "geaendert": False}
+            else:
+                if isinstance(ist_menge, (int, float)):
+                    neu = int(ist_menge)
+                    if neu != zelle["stk"]:
+                        zelle["geaendert"] = True
+                    zelle["stk"] = neu
+                if erledigt:
+                    zelle["erledigt"] = True
+
+    # In Matrix-Form ueberfuehren (mit Chargen-Neuberechnung aus max_ofen)
+    matrix = {}  # {pk: {tag: {stk, ch, erledigt, geaendert}}}
+    for (tag, pk), c in finale.items():
+        if c["stk"] <= 0: continue
+        cfg = PRODUKT_CONFIG.get(pk, {})
+        max_ofen = cfg.get("max_ofen") or c["stk"] or 1
+        ch = max(1, math.ceil(c["stk"] / max(1, max_ofen)))
+        row = matrix.setdefault(pk, {})
+        zelle = row.setdefault(tag,
+            {"stk": 0, "ch": 0, "erledigt": False, "geaendert": False})
+        zelle["stk"] += c["stk"]
+        zelle["ch"]  += ch
+        if c["erledigt"]:  zelle["erledigt"]  = True
+        if c["geaendert"]: zelle["geaendert"] = True
+
     if matrix:
-        # Anzeige-Reihenfolge: nach PRODUKT_CONFIG-Reihenfolge
         produkt_order = [pk for pk in PRODUKT_CONFIG if pk in matrix]
         kurz = {"Montag":"Mo","Dienstag":"Di","Mittwoch":"Mi","Donnerstag":"Do","Freitag":"Fr"}
         html.append('<div class="matrix">')
@@ -2109,15 +2282,29 @@ def erstelle_html_wochenuebersicht(bedarf, murt, wplan, rolling, tages_info):
             html.append('<tr><td>{}</td>'.format(pk))
             stk_sum = 0; ch_sum = 0
             for t in ARBEITSTAGE:
-                stk, ch = row[t]
-                stk_sum += stk; ch_sum += ch
-                if stk == 0:
-                    html.append('<td class="z">&middot;</td>')
+                zelle = row.get(t)
+                ist_vergangen = vtage_set and t not in vtage_set
+                if not zelle or zelle["stk"] == 0:
+                    cls = ' class="z past"' if ist_vergangen else ' class="z"'
+                    html.append('<td{}>&middot;</td>'.format(cls))
                 else:
-                    html.append('<td><b>{}</b><br><span style="color:#888;font-size:10px">{}&times;</span></td>'.format(stk, ch))
+                    stk_sum += zelle["stk"]; ch_sum += zelle["ch"]
+                    klassen = []
+                    if zelle.get("erledigt"):  klassen.append("done")
+                    if zelle.get("geaendert"): klassen.append("mod")
+                    if ist_vergangen and not zelle.get("erledigt"):
+                        klassen.append("past")
+                    cls = ' class="' + ' '.join(klassen) + '"' if klassen else ''
+                    html.append('<td{}><b>{}</b><br><span style="color:#888;font-size:10px">{}&times;</span></td>'.format(
+                        cls, zelle["stk"], zelle["ch"]))
             html.append('<td class="sum">{}<br><span style="font-weight:400;font-size:10px">{}&times;</span></td>'.format(stk_sum, ch_sum))
             html.append('</tr>')
         html.append('</tbody></table></div>')
+        html.append('<div class="matrix-legend">'
+                    '<span class="lg-done">2</span> erledigt '
+                    '&nbsp;&middot;&nbsp; &#9998; vom Plan abweichend '
+                    '&nbsp;&middot;&nbsp; &middot; nichts geplant'
+                    '</div>')
 
     hat_inhalt = False
     for tag in ARBEITSTAGE:
@@ -3227,6 +3414,9 @@ def main():
     vtage, wplan = erstelle_wochenplan(bedarf, murt, rezepte, sub_rezepte,
                                        verbleibende_tage=verbleibende_tage)
     wplan = frage_vorbereitungen(bedarf, wplan, vtage, sub_rezepte)
+    # Wplan-Snapshot fuer diese KW persistieren — wird in der Wochenmatrix
+    # gelesen, damit vergangene Tage bei mid-week-Laeufen sichtbar bleiben.
+    speichere_wplan_kw(wplan, vtage=vtage)
     print("Schreibe Excel..."); erstelle_excel(bedarf, murt, wplan)
     print("Erstelle HTML Bestellliste...")
     erstelle_html_bestellliste(bedarf, wplan, vtage, verkauf, lager, rezepte, sub_rezepte, preise)
@@ -3235,9 +3425,17 @@ def main():
     if engpaesse:
         print("  WARNUNG Engpaesse: {}".format(engpaesse))
     print("Erstelle HTML Wochenuebersicht...")
-    erstelle_html_wochenuebersicht(bedarf, murt, wplan, rolling, tages_info)
+    erstelle_html_wochenuebersicht(bedarf, murt, wplan, rolling, tages_info, vtage=vtage)
     print("Erstelle HTML Tagesplaene...")
     for tag, aufgaben in wplan.items():
+        # Vergangene Tage NICHT ueberschreiben: Wenn der Planer mitten in der
+        # Woche laeuft (z.B. Di Lager aktualisiert), bleibt Montag.html mit
+        # allen bereits gesetzten Haken und per Zahnrad geaenderten Stueckzahlen
+        # unangetastet. Nachtraegliches Korrigieren via Zahnrad bleibt moeglich,
+        # weil die ist_produktion_KW*.json unabhaengig weiterlaeuft.
+        if vtage and tag not in vtage:
+            print("  {} uebersprungen (vergangener Tag) — bestehende HTML bleibt.".format(tag))
+            continue
         ist_heut = (tag == vtage[0]) if vtage else False
         lager_info = tages_info.get(tag, [])
         erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=sub_rezepte,
