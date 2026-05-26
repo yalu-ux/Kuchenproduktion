@@ -1,7 +1,7 @@
 {
   "kw": "",
   "_format": 1,
-  "_updated": "2026-05-26T17:37:35.391Z",
+  "_updated": "2026-05-26T17:37:39.383Z",
   "tage": {
     "Montag": {
       "_mt_ansetzen": {
@@ -21,7 +21,8 @@
       },
       "Lauch-Speck Quiche": {
         "ist_menge": 2,
-        "verschoben_nach": null
+        "verschoben_nach": null,
+        "erledigt": true
       }
     }
   }
