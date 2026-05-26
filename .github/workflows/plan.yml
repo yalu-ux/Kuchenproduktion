@@ -9,6 +9,15 @@ on:
       - 'System/planner.py'
       - 'System/lerne_woche.py'
       - 'Kalkulation/Preise.xlsx'
+      # Bei jedem Save der ist_produktion-JSON aus dem Browser erneut die
+      # Wochenmatrix bauen, damit sie die echten Stueckzahlen + Erledigt-Status zeigt.
+      - 'Wochenplan/ist_produktion_KW*.json'
+
+# Bei schnellen aufeinanderfolgenden Saves (Zahnrad-Klick + Haeckchen-Klick)
+# laufende aelteren Runs abbrechen, statt sich aufzustauen.
+concurrency:
+  group: planung-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
