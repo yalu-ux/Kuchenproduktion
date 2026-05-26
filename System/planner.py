@@ -2741,6 +2741,15 @@ def erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=None, lager_info=Non
     ) if ist_heut else ""
     toggle_js = """<script>
 (function(){
+// Service Worker registrieren -- umgeht den HTML-Browser-Cache, damit der
+// User nach Saves IMMER die aktuellen Seiten sieht. Einmal-Installation,
+// danach laeuft das im Hintergrund automatisch. Funktioniert in normalen
+// Browser-Sessions ohne Inkognito (LocalStorage bleibt erhalten -> Token bleibt).
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(function(e){
+    console.warn('SW-Registrierung:',e);
+  });
+}
 var DAYS=['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 var IST={kw:'',tage:{},_sha:null};
 var KW='';
