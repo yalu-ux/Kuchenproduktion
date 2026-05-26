@@ -2993,15 +2993,31 @@ async function saveIst(){
   _saveDebounce=setTimeout(_doSaveIst,400);
 }
 
-async function _doSaveIst(){
-  if(!ghReady()){showToast('GitHub-Login fehlt','error');return;}
+async function _fetchCurrentSha(){
+  // Cache-Buster anhaengen, damit GitHubs CDN nicht eine veraltete Antwort liefert.
+  var url=ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json?ref=main&_='+Date.now();
   try{
-    var getR=await fetch(ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json?ref=main',{
-      headers:{Authorization:'Bearer '+cfg('token'),Accept:'application/vnd.github+json'}
+    var r=await fetch(url,{
+      headers:{Authorization:'Bearer '+cfg('token'),
+               Accept:'application/vnd.github+json',
+               'Cache-Control':'no-cache','If-None-Match':''}
     });
-    if(getR.ok){var gj=await getR.json();IST._sha=gj.sha;}
-    else if(getR.status===404){IST._sha=null;}
+    if(r.ok){var j=await r.json();return j.sha;}
+    if(r.status===404) return null;
   }catch(e){}
+  return undefined;  // unbekannt — Aufrufer entscheidet
+}
+
+async function _doSaveIst(retried){
+  if(!ghReady()){showToast('GitHub-Login fehlt','error');return;}
+  // Wenn IST._sha vom letzten erfolgreichen PUT vorhanden ist, vertrauen wir
+  // dem — GitHubs Contents-GET kann durch Replication-Lag eine veraltete SHA
+  // liefern und uns so in einen 409/422-Konflikt schicken. Nur initial oder
+  // nach einem fehlgeschlagenen PUT holen wir die SHA frisch.
+  if(IST._sha===undefined || IST._sha===null && !retried){
+    var sha=await _fetchCurrentSha();
+    if(sha!==undefined) IST._sha=sha;
+  }
   var payload={kw:KW,_format:1,_updated:new Date().toISOString(),tage:IST.tage};
   var jsonStr=JSON.stringify(payload,null,2);
   var b64=btoa(unescape(encodeURIComponent(jsonStr)));
@@ -3013,7 +3029,18 @@ async function _doSaveIst(){
       headers:{Authorization:'Bearer '+cfg('token'),Accept:'application/vnd.github+json','Content-Type':'application/json'},
       body:JSON.stringify(body)
     });
-    if(!r.ok){var er=await r.json();throw new Error(er.message||'HTTP '+r.status);}
+    if(!r.ok){
+      var er;try{er=await r.json();}catch(_){er={};}
+      // SHA-Konflikt: einmal mit aktueller SHA neu versuchen.
+      if(!retried && (r.status===409 || r.status===422 ||
+                       (er.message && /sha|does not match/i.test(er.message)))){
+        IST._sha=await _fetchCurrentSha();
+        // Kurzer Backoff, damit die Replication aufholen kann.
+        await new Promise(function(res){setTimeout(res,300);});
+        return _doSaveIst(true);
+      }
+      throw new Error(er.message||'HTTP '+r.status);
+    }
     var rj=await r.json();IST._sha=rj.content.sha;
     showToast('Gespeichert','success');
   }catch(e){
@@ -3447,3 +3474,27 @@ def main():
 
 if __name__ == "__main__":
     main()
+chenuebersicht...")
+    erstelle_html_wochenuebersicht(bedarf, murt, wplan, rolling, tages_info, vtage=vtage)
+    print("Erstelle HTML Tagesplaene...")
+    for tag, aufgaben in wplan.items():
+        # Vergangene Tage NICHT ueberschreiben: Wenn der Planer mitten in der
+        # Woche laeuft (z.B. Di Lager aktualisiert), bleibt Montag.html mit
+        # allen bereits gesetzten Haken und per Zahnrad geaenderten Stueckzahlen
+        # unangetastet. Nachtraegliches Korrigieren via Zahnrad bleibt moeglich,
+        # weil die ist_produktion_KW*.json unabhaengig weiterlaeuft.
+        if vtage and tag not in vtage:
+            print("  {} uebersprungen (vergangener Tag) - bestehende HTML bleibt.".format(tag))
+            continue
+        ist_heut = (tag == vtage[0]) if vtage else False
+        lager_info = tages_info.get(tag, [])
+        erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=sub_rezepte,
+                      lager_info=lager_info, ist_heut=ist_heut, preise=preise)
+    print("Aggregiere Single-Page Dashboard...")
+    erstelle_dashboard_html()
+    print("\nFertig! Ordner: {}".format(OUTPUT_PFAD))
+
+
+if __name__ == "__main__":
+    main()
+)
