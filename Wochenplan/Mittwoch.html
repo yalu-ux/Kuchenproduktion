@@ -16,17 +16,21 @@ function ghBase(){return 'https://api.github.com/repos/'+cfg('owner')+'/'+cfg('r
 function ghReady(){return cfg('owner')&&cfg('repo')&&cfg('token');}
 
 function getKW(){
-  var dt=document.querySelector('.datum');
-  if(dt){
-    var m=dt.textContent.match(/KW\s*(\d+)/i);
-    var ym=dt.textContent.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-    if(m){
-      var jahr=ym?ym[3]:String(new Date().getFullYear());
-      var w=m[1]; if(w.length<2) w='0'+w;
-      return jahr+'-'+w;
-    }
-  }
-  return String(new Date().getFullYear())+'-00';
+  // Aktuelle ISO-Kalenderwoche aus dem heutigen Datum berechnen.
+  // Frueher haben wir das aus dem .datum-Element der Seite ausgelesen.
+  // Problem: im Dashboard.html sind mehrere Tagesplan-Bodies aggregiert.
+  // Wenn Variante A einen Montagsplan aus der Vorwoche konserviert hat
+  // (anderes KW im Datums-Element), liefert querySelector('.datum')
+  // diese alte KW zurueck -> Saves landen in der falschen Datei,
+  // Wochenmatrix und Tagesplaene sehen unterschiedliche Wahrheiten.
+  var d=new Date();
+  var t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  var day=t.getUTCDay()||7;
+  t.setUTCDate(t.getUTCDate()+4-day);
+  var yearStart=new Date(Date.UTC(t.getUTCFullYear(),0,1));
+  var weekNum=Math.ceil((((t-yearStart)/86400000)+1)/7);
+  var w=weekNum<10?'0'+weekNum:String(weekNum);
+  return t.getUTCFullYear()+'-'+w;
 }
 
 function showToast(msg,kind){
