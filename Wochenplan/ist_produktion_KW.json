@@ -1,7 +1,7 @@
 {
   "kw": "",
   "_format": 1,
-  "_updated": "2026-05-26T17:33:55.018Z",
+  "_updated": "2026-05-26T17:34:00.719Z",
   "tage": {
     "Montag": {
       "Kaesekuchen": {
@@ -13,6 +13,10 @@
         "ist_menge": 2,
         "verschoben_nach": null,
         "erledigt": true
+      },
+      "_streusel_chargen": {
+        "ist_menge": 2,
+        "verschoben_nach": null
       }
     },
     "Dienstag": {
