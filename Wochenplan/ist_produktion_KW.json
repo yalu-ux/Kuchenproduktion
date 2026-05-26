@@ -1,7 +1,7 @@
 {
   "kw": "",
   "_format": 1,
-  "_updated": "2026-05-26T17:32:20.677Z",
+  "_updated": "2026-05-26T17:32:31.849Z",
   "tage": {
     "Montag": {
       "Kaesekuchen": {
@@ -14,7 +14,7 @@
       "Lauch-Speck Quiche": {
         "ist_menge": 2,
         "verschoben_nach": "Montag",
-        "erledigt": true
+        "erledigt": false
       }
     }
   }
