@@ -1,0 +1,147 @@
+{
+  "kw": "2026-22",
+  "_format": 1,
+  "_updated": "2026-05-26T07:08:28.204055",
+  "tage": {
+    "Dienstag": [
+      {
+        "produkt_key": "Kaesekuchen",
+        "menge": 2,
+        "aktiv_min": 20,
+        "passiv_min": 90
+      },
+      {
+        "produkt_key": "Kaesekuchen",
+        "menge": 2,
+        "aktiv_min": 20,
+        "passiv_min": 90
+      },
+      {
+        "produkt_key": "Lauch-Speck Quiche",
+        "menge": 3,
+        "aktiv_min": 60,
+        "passiv_min": 90
+      },
+      {
+        "produkt_key": "Kaese-Rhabarber Schnitte",
+        "menge": 6,
+        "aktiv_min": 90,
+        "passiv_min": 40
+      }
+    ],
+    "Mittwoch": [
+      {
+        "produkt_key": "Kaesekuchen",
+        "menge": 2,
+        "aktiv_min": 20,
+        "passiv_min": 90
+      },
+      {
+        "produkt_key": "Kaesekuchen",
+        "menge": 2,
+        "aktiv_min": 20,
+        "passiv_min": 90
+      },
+      {
+        "produkt_key": "Bienenstich",
+        "menge": 6,
+        "aktiv_min": 120,
+        "passiv_min": 200
+      },
+      {
+        "produkt_key": "Lauch-Speck Quiche",
+        "menge": 3,
+        "aktiv_min": 60,
+        "passiv_min": 90
+      },
+      {
+        "produkt_key": "Donauwelle",
+        "menge": 6,
+        "aktiv_min": 150,
+        "passiv_min": 290
+      },
+      {
+        "produkt_key": "Beeren Tartelette",
+        "menge": 60,
+        "aktiv_min": 100,
+        "passiv_min": 430
+      }
+    ],
+    "Donnerstag": [
+      {
+        "produkt_key": "Kaesekuchen",
+        "menge": 2,
+        "aktiv_min": 20,
+        "passiv_min": 90
+      },
+      {
+        "produkt_key": "Kaesekuchen",
+        "menge": 2,
+        "aktiv_min": 20,
+        "passiv_min": 90
+      },
+      {
+        "produkt_key": "Bienenstich",
+        "menge": 6,
+        "aktiv_min": 120,
+        "passiv_min": 200
+      },
+      {
+        "produkt_key": "Lauch-Speck Quiche",
+        "menge": 3,
+        "aktiv_min": 60,
+        "passiv_min": 90
+      },
+      {
+        "produkt_key": "Donauwelle",
+        "menge": 6,
+        "aktiv_min": 150,
+        "passiv_min": 290
+      },
+      {
+        "produkt_key": "Kaese-Rhabarber Schnitte",
+        "menge": 6,
+        "aktiv_min": 90,
+        "passiv_min": 40
+      }
+    ],
+    "Freitag": [
+      {
+        "produkt_key": "Kaesekuchen",
+        "menge": 2,
+        "aktiv_min": 20,
+        "passiv_min": 90
+      },
+      {
+        "produkt_key": "Kaesekuchen",
+        "menge": 2,
+        "aktiv_min": 20,
+        "passiv_min": 90
+      },
+      {
+        "produkt_key": "Bienenstich",
+        "menge": 6,
+        "aktiv_min": 120,
+        "passiv_min": 200
+      },
+      {
+        "produkt_key": "Lauch-Speck Quiche",
+        "menge": 3,
+        "aktiv_min": 60,
+        "passiv_min": 90
+      },
+      {
+        "produkt_key": "Donauwelle",
+        "menge": 6,
+        "aktiv_min": 150,
+        "passiv_min": 290
+      },
+      {
+        "produkt_key": "Kaese-Rhabarber Schnitte",
+        "menge": 6,
+        "aktiv_min": 90,
+        "passiv_min": 40
+      }
+    ]
+  }
+}

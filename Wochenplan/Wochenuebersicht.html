@@ -26,9 +26,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .matrix th,.matrix td{padding:5px 6px;text-align:center;border-bottom:1px solid #f3f3f3}
 .matrix th{font-weight:600;color:#555;background:#fafafa}.matrix td:first-child,.matrix th:first-child{text-align:left;font-weight:500;color:#333}
 .matrix .z{color:#bbb}.matrix .sum{font-weight:700;color:#1B5FAB;background:#f7fafd}
+.matrix td.done{background:#E8F5EA}.matrix td.done b{color:#2D8B3E}
+.matrix td.mod{position:relative}.matrix td.mod::after{content:"\270e";position:absolute;top:1px;right:3px;font-size:9px;color:#999}
+.matrix td.past{background-image:linear-gradient(135deg,transparent 0,transparent 6px,#f5f5f5 6px,#f5f5f5 7px,transparent 7px,transparent 12px,#f5f5f5 12px,#f5f5f5 13px)}
+.matrix-legend{margin:4px 12px 0;font-size:10px;color:#888;text-align:right}
+.matrix-legend .lg-done{color:#2D8B3E;font-weight:700;background:#E8F5EA;padding:0 4px;border-radius:3px}
 </style></head><body>
 <div class="header"><h1>&#128197; Wochenuebersicht</h1>
-<div class="sub">Stand: 25.05.2026 20:30</div></div>
+<div class="sub">Stand: 26.05.2026 07:08</div></div>
 <div style="margin:10px 12px 0;padding:6px 12px;background:#FFF4D4;color:#8A6D1F;border-radius:8px;font-size:11px;font-weight:600">&#128221; Statische Verkaufszahlen — noch keine Historie. Mit <code>System/lerne_woche.py</code> Wochen einlernen.</div>
 <div class="matrix">
 <div class="matrix-title">&#128202; Chargen-Verteilung</div>
@@ -40,23 +45,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <th>Fr</th>
 <th class="sum">&Sigma;</th></tr></thead><tbody>
 <tr><td>Donauwelle</td>
+<td class="z past">&middot;</td>
 <td class="z">&middot;</td>
 <td><b>6</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
 <td><b>6</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
 <td><b>6</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
-<td><b>6</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
-<td class="sum">24<br><span style="font-weight:400;font-size:10px">4&times;</span></td>
+<td class="sum">18<br><span style="font-weight:400;font-size:10px">3&times;</span></td>
 </tr>
 <tr><td>Kaese-Rhabarber Schnitte</td>
-<td class="z">&middot;</td>
+<td class="z past">&middot;</td>
+<td><b>6</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
 <td class="z">&middot;</td>
 <td><b>6</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
-<td><b>12</b><br><span style="color:#888;font-size:10px">2&times;</span></td>
 <td><b>6</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
-<td class="sum">24<br><span style="font-weight:400;font-size:10px">4&times;</span></td>
+<td class="sum">18<br><span style="font-weight:400;font-size:10px">3&times;</span></td>
 </tr>
 <tr><td>Kaesekuchen</td>
-<td><b>4</b><br><span style="color:#888;font-size:10px">2&times;</span></td>
+<td class="mod past"><b>4</b><br><span style="color:#888;font-size:10px">2&times;</span></td>
 <td><b>4</b><br><span style="color:#888;font-size:10px">2&times;</span></td>
 <td><b>4</b><br><span style="color:#888;font-size:10px">2&times;</span></td>
 <td><b>4</b><br><span style="color:#888;font-size:10px">2&times;</span></td>
@@ -64,23 +69,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <td class="sum">20<br><span style="font-weight:400;font-size:10px">10&times;</span></td>
 </tr>
 <tr><td>Bienenstich</td>
+<td class="z past">&middot;</td>
 <td class="z">&middot;</td>
 <td><b>6</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
 <td><b>6</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
 <td><b>6</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
-<td><b>6</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
-<td class="sum">24<br><span style="font-weight:400;font-size:10px">4&times;</span></td>
+<td class="sum">18<br><span style="font-weight:400;font-size:10px">3&times;</span></td>
 </tr>
 <tr><td>Lauch-Speck Quiche</td>
-<td><b>6</b><br><span style="color:#888;font-size:10px">2&times;</span></td>
+<td class="z past">&middot;</td>
 <td><b>3</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
 <td><b>3</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
 <td><b>3</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
 <td><b>3</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
-<td class="sum">18<br><span style="font-weight:400;font-size:10px">6&times;</span></td>
+<td class="sum">12<br><span style="font-weight:400;font-size:10px">4&times;</span></td>
 </tr>
 <tr><td>Beeren Tartelette</td>
-<td class="z">&middot;</td>
+<td class="z past">&middot;</td>
 <td class="z">&middot;</td>
 <td><b>60</b><br><span style="color:#888;font-size:10px">1&times;</span></td>
 <td class="z">&middot;</td>
@@ -88,136 +93,75 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <td class="sum">60<br><span style="font-weight:400;font-size:10px">1&times;</span></td>
 </tr>
 </tbody></table></div>
+<div class="matrix-legend"><span class="lg-done">2</span> erledigt &nbsp;&middot;&nbsp; &#9998; vom Plan abweichend &nbsp;&middot;&nbsp; &middot; nichts geplant</div>
 <div class="day-card">
-<div class="day-header" style="background:#E2EFDA;color:#375623">MONTAG
- &nbsp;<span style="font-weight:400;font-size:11px">&#9201; aktiv 5h50min / passiv 6h0min</span>
+<div class="day-header" style="background:#DDEBF7;color:#2E75B6">DIENSTAG
+ &nbsp;<span style="font-weight:400;font-size:11px">&#9201; aktiv 5h10min / passiv 5h20min</span>
 </div>
-<div class="task-row"><div style="flex:1">
-<div class="task-name">MUERBETEIG ANSETZEN</div>
-<div class="task-notiz">8x Grundrezept (12000g) - ueber Nacht kuehl stellen</div>
-<div class="task-zeit">&#9201; aktiv 2h40min / passiv </div>
-</div></div>
-<div class="task-row"><div style="flex:1">
-<div class="task-name">STREUSEL Charge 1/3</div>
-<div class="task-notiz">1x Grundrezept (1925g) - Teil fuer die ganze Woche</div>
-<div class="task-zeit">&#9201; aktiv 10min / passiv </div>
-</div></div>
-<div class="task-row"><div style="flex:1">
-<div class="task-name">STREUSEL Charge 2/3</div>
-<div class="task-notiz">1x Grundrezept (1925g) - Teil fuer die ganze Woche</div>
-<div class="task-zeit">&#9201; aktiv 10min / passiv </div>
-</div></div>
-<div class="task-row"><div style="flex:1">
-<div class="task-name">STREUSEL Charge 3/3</div>
-<div class="task-notiz">1x Grundrezept (1925g) - Teil fuer die ganze Woche</div>
-<div class="task-zeit">&#9201; aktiv 10min / passiv </div>
-</div></div>
-<div class="task-row"><div style="flex:1">
-<div class="task-name">Kaesekuchen &mdash; <span style="color:#555;font-size:13px">2 Stk</span></div>
-<div class="task-notiz">Charge 1/12 - Murbeteigboden von letzter Woche → 1 frisch, 1 einfrieren</div>
-<div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 1 einfrieren</div>
-<div class="task-zeit">&#9201; aktiv 20min / passiv 1h30min</div>
-</div></div>
-<div class="task-row"><div style="flex:1">
-<div class="task-name">Kaesekuchen &mdash; <span style="color:#555;font-size:13px">2 Stk</span></div>
-<div class="task-notiz">Charge 2/12 - Murbeteigboden von letzter Woche → 1 frisch, 1 einfrieren</div>
-<div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 1 einfrieren</div>
-<div class="task-zeit">&#9201; aktiv 20min / passiv 1h30min</div>
-</div></div>
-<div class="task-row"><div style="flex:1">
-<div class="task-name">Lauch-Speck Quiche &mdash; <span style="color:#555;font-size:13px">3 Stk</span><span class="grund-badge g-pflicht">Pflicht</span></div>
-<div class="task-notiz">Charge 1/9 — Pflicht (Montag=mind. 1/Tag) → 1 frisch, 2 einfrieren</div>
-<div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 2 einfrieren</div>
-<div class="task-zeit">&#9201; aktiv 1h0min / passiv 1h30min</div>
-</div></div>
-<div class="task-row"><div style="flex:1">
-<div class="task-name">Lauch-Speck Quiche &mdash; <span style="color:#555;font-size:13px">3 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 6/9 → 1 frisch, 2 einfrieren</div>
-<div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 2 einfrieren</div>
-<div class="task-zeit">&#9201; aktiv 1h0min / passiv 1h30min</div>
-</div></div>
-</div>
-<div class="day-card">
-<div class="day-header" style="background:#DDEBF7;color:#2E75B6;border-left:4px solid #C0392B">DIENSTAG
- &nbsp;<span style="font-weight:400;font-size:11px">&#9201; aktiv 8h50min / passiv 12h50min &#9888;</span>
-</div>
-<div style="background:#FFE4E1;color:#C0392B;padding:6px 14px;font-size:11px;font-weight:600">&#9888; Tageslimit 420 Min ueberschritten (+110 Min) — manuell entzerren oder Verteilung pruefen</div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">MUERBETEIG BACKEN</div>
-<div class="task-notiz">Alle Boeden: 48x 30x20 Schnitte, 24x Murbeteig rund, 60x Tartelette + 4x Murbeteig rund fuer naechsten Montag</div>
-<div class="task-zeit">&#9201; aktiv 2h40min / passiv 10min</div>
+<div class="task-notiz">Alle Boeden: 36x 30x20 Schnitte, 20x Murbeteig rund, 60x Tartelette + 4x Murbeteig rund fuer naechsten Montag</div>
+<div class="task-zeit">&#9201; aktiv 2h0min / passiv 10min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Kaesekuchen &mdash; <span style="color:#555;font-size:13px">2 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 9/12 → 1 frisch, 1 einfrieren</div>
+<div class="task-notiz">Charge 7/10 → 1 frisch, 1 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 1 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 20min / passiv 1h30min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Kaesekuchen &mdash; <span style="color:#555;font-size:13px">2 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 10/12 → 1 frisch, 1 einfrieren</div>
+<div class="task-notiz">Charge 8/10 → 1 frisch, 1 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 1 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 20min / passiv 1h30min</div>
-</div></div>
-<div class="task-row"><div style="flex:1">
-<div class="task-name">Bienenstich &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 4/4 → 1 frisch, 5 einfrieren</div>
-<div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 5 einfrieren</div>
-<div class="task-zeit">&#9201; aktiv 2h0min / passiv 3h20min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Lauch-Speck Quiche &mdash; <span style="color:#555;font-size:13px">3 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 5/9 → 1 frisch, 2 einfrieren</div>
+<div class="task-notiz">Charge 4/7 → 1 frisch, 2 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 2 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 1h0min / passiv 1h30min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
-<div class="task-name">Donauwelle &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 4/4 → 1 frisch, 5 einfrieren</div>
-<div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 5 einfrieren</div>
-<div class="task-zeit">&#9201; aktiv 2h30min / passiv 4h50min</div>
+<div class="task-name">Kaese-Rhabarber Schnitte &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
+<div class="task-notiz">Charge 2/3 → 2 frisch, 4 einfrieren</div>
+<div class="task-notiz" style="color:#2E75B6">&#10052; 2 frisch / 4 einfrieren</div>
+<div class="task-zeit">&#9201; aktiv 1h30min / passiv 40min</div>
 </div></div>
 </div>
 <div class="day-card">
 <div class="day-header" style="background:#FFF2CC;color:#7B6000;border-left:4px solid #C0392B">MITTWOCH
- &nbsp;<span style="font-weight:400;font-size:11px">&#9201; aktiv 9h20min / passiv 20h30min &#9888;</span>
+ &nbsp;<span style="font-weight:400;font-size:11px">&#9201; aktiv 7h50min / passiv 19h50min &#9888;</span>
 </div>
-<div style="background:#FFE4E1;color:#C0392B;padding:6px 14px;font-size:11px;font-weight:600">&#9888; Tageslimit 420 Min ueberschritten (+140 Min) — manuell entzerren oder Verteilung pruefen</div>
+<div style="background:#FFE4E1;color:#C0392B;padding:6px 14px;font-size:11px;font-weight:600">&#9888; Tageslimit 420 Min ueberschritten (+50 Min) — manuell entzerren oder Verteilung pruefen</div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Kaesekuchen &mdash; <span style="color:#555;font-size:13px">2 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 7/12 → 1 frisch, 1 einfrieren</div>
+<div class="task-notiz">Charge 5/10 → 1 frisch, 1 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 1 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 20min / passiv 1h30min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Kaesekuchen &mdash; <span style="color:#555;font-size:13px">2 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 8/12 → 1 frisch, 1 einfrieren</div>
+<div class="task-notiz">Charge 6/10 → 1 frisch, 1 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 1 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 20min / passiv 1h30min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Bienenstich &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 3/4 → 1 frisch, 5 einfrieren</div>
+<div class="task-notiz">Charge 3/3 → 1 frisch, 5 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 5 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 2h0min / passiv 3h20min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Lauch-Speck Quiche &mdash; <span style="color:#555;font-size:13px">3 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 4/9 → 1 frisch, 2 einfrieren</div>
+<div class="task-notiz">Charge 3/7 → 1 frisch, 2 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 2 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 1h0min / passiv 1h30min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Donauwelle &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 3/4 → 1 frisch, 5 einfrieren</div>
+<div class="task-notiz">Charge 3/3 → 1 frisch, 5 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 5 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 2h30min / passiv 4h50min</div>
-</div></div>
-<div class="task-row"><div style="flex:1">
-<div class="task-name">Kaese-Rhabarber Schnitte &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 4/4 → 1 frisch, 5 einfrieren</div>
-<div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 5 einfrieren</div>
-<div class="task-zeit">&#9201; aktiv 1h30min / passiv 40min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Beeren Tartelette &mdash; <span style="color:#555;font-size:13px">60 Stk</span></div>
@@ -228,46 +172,40 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 </div>
 <div class="day-card">
 <div class="day-header" style="background:#FCE4D6;color:#833C00;border-left:4px solid #C0392B">DONNERSTAG
- &nbsp;<span style="font-weight:400;font-size:11px">&#9201; aktiv 9h10min / passiv 14h0min &#9888;</span>
+ &nbsp;<span style="font-weight:400;font-size:11px">&#9201; aktiv 7h40min / passiv 13h20min &#9888;</span>
 </div>
-<div style="background:#FFE4E1;color:#C0392B;padding:6px 14px;font-size:11px;font-weight:600">&#9888; Tageslimit 420 Min ueberschritten (+130 Min) — manuell entzerren oder Verteilung pruefen</div>
+<div style="background:#FFE4E1;color:#C0392B;padding:6px 14px;font-size:11px;font-weight:600">&#9888; Tageslimit 420 Min ueberschritten (+40 Min) — manuell entzerren oder Verteilung pruefen</div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Kaesekuchen &mdash; <span style="color:#555;font-size:13px">2 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 5/12</div>
+<div class="task-notiz">Charge 3/10</div>
 <div class="task-zeit">&#9201; aktiv 20min / passiv 1h30min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Kaesekuchen &mdash; <span style="color:#555;font-size:13px">2 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 6/12</div>
+<div class="task-notiz">Charge 4/10</div>
 <div class="task-zeit">&#9201; aktiv 20min / passiv 1h30min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Bienenstich &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 2/4 → 1 frisch, 5 einfrieren</div>
+<div class="task-notiz">Charge 2/3 → 1 frisch, 5 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 5 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 2h0min / passiv 3h20min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Lauch-Speck Quiche &mdash; <span style="color:#555;font-size:13px">3 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 2/9 → 1 frisch, 2 einfrieren</div>
+<div class="task-notiz">Charge 1/7 → 1 frisch, 2 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 2 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 1h0min / passiv 1h30min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Donauwelle &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 2/4 → 1 frisch, 5 einfrieren</div>
+<div class="task-notiz">Charge 2/3 → 1 frisch, 5 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 5 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 2h30min / passiv 4h50min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Kaese-Rhabarber Schnitte &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-pflicht">Pflicht</span></div>
-<div class="task-notiz">Charge 1/4 — Pflicht (Donnerstag=mind. 1/Tag) → 1 frisch, 5 einfrieren</div>
-<div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 5 einfrieren</div>
-<div class="task-zeit">&#9201; aktiv 1h30min / passiv 40min</div>
-</div></div>
-<div class="task-row"><div style="flex:1">
-<div class="task-name">Kaese-Rhabarber Schnitte &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 3/4 → 1 frisch, 5 einfrieren</div>
+<div class="task-notiz">Charge 1/3 — Pflicht (Donnerstag=mind. 1/Tag) → 1 frisch, 5 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 1 frisch / 5 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 1h30min / passiv 40min</div>
 </div></div>
@@ -279,46 +217,46 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 <div style="background:#FFE4E1;color:#C0392B;padding:6px 14px;font-size:11px;font-weight:600">&#9888; Tageslimit 420 Min ueberschritten (+40 Min) — manuell entzerren oder Verteilung pruefen</div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Kaesekuchen &mdash; <span style="color:#555;font-size:13px">2 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 3/12</div>
+<div class="task-notiz">Charge 1/10</div>
 <div class="task-zeit">&#9201; aktiv 20min / passiv 1h30min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Kaesekuchen &mdash; <span style="color:#555;font-size:13px">2 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 4/12</div>
+<div class="task-notiz">Charge 2/10</div>
 <div class="task-zeit">&#9201; aktiv 20min / passiv 1h30min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Bienenstich &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 1/4 → 2 frisch, 4 einfrieren</div>
+<div class="task-notiz">Charge 1/3 → 2 frisch, 4 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 2 frisch / 4 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 2h0min / passiv 3h20min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Lauch-Speck Quiche &mdash; <span style="color:#555;font-size:13px">3 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 3/9 → 2 frisch, 1 einfrieren</div>
+<div class="task-notiz">Charge 2/7 → 2 frisch, 1 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 2 frisch / 1 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 1h0min / passiv 1h30min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Donauwelle &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 1/4 → 2 frisch, 4 einfrieren</div>
+<div class="task-notiz">Charge 1/3 → 2 frisch, 4 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 2 frisch / 4 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 2h30min / passiv 4h50min</div>
 </div></div>
 <div class="task-row"><div style="flex:1">
 <div class="task-name">Kaese-Rhabarber Schnitte &mdash; <span style="color:#555;font-size:13px">6 Stk</span><span class="grund-badge g-puffer">Puffer</span></div>
-<div class="task-notiz">Charge 2/4 → 2 frisch, 4 einfrieren</div>
+<div class="task-notiz">Charge 3/3 → 2 frisch, 4 einfrieren</div>
 <div class="task-notiz" style="color:#2E75B6">&#10052; 2 frisch / 4 einfrieren</div>
 <div class="task-zeit">&#9201; aktiv 1h30min / passiv 40min</div>
 </div></div>
 </div>
 <div class="lager-panel" style="margin-top:16px">
 <div class="lager-title">&#128203; Wochenbedarf</div>
-<div class="lager-row"><span>Donauwelle</span><span style="color:#375623;font-weight:600">+24 Stk produzieren</span></div>
-<div class="lager-row"><span>Kaese-Rhabarber Schnitte</span><span style="color:#375623;font-weight:600">+24 Stk produzieren</span></div>
-<div class="lager-row"><span>Kaesekuchen</span><span style="color:#375623;font-weight:600">+24 Stk produzieren</span></div>
-<div class="lager-row"><span>Bienenstich</span><span style="color:#375623;font-weight:600">+24 Stk produzieren</span></div>
-<div class="lager-row"><span>Lauch-Speck Quiche</span><span style="color:#375623;font-weight:600">+25 Stk produzieren</span></div>
+<div class="lager-row"><span>Donauwelle</span><span style="color:#375623;font-weight:600">+18 Stk produzieren</span></div>
+<div class="lager-row"><span>Kaese-Rhabarber Schnitte</span><span style="color:#375623;font-weight:600">+18 Stk produzieren</span></div>
+<div class="lager-row"><span>Kaesekuchen</span><span style="color:#375623;font-weight:600">+20 Stk produzieren</span></div>
+<div class="lager-row"><span>Bienenstich</span><span style="color:#375623;font-weight:600">+18 Stk produzieren</span></div>
+<div class="lager-row"><span>Lauch-Speck Quiche</span><span style="color:#375623;font-weight:600">+20 Stk produzieren</span></div>
 <div class="lager-row"><span>Beeren Tartelette</span><span style="color:#375623;font-weight:600">+60 Stk produzieren</span></div>
 <div class="lager-row"><span>Mango-Passionsfrucht Tartelette</span><span style="color:#888">Lager reicht (27 Stk)</span></div>
 <div class="lager-row"><span>Pistazien Toertchen</span><span style="color:#888">Lager reicht (32 Stk)</span></div>
