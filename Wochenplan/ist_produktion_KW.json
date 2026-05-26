@@ -1,7 +1,7 @@
 {
   "kw": "",
   "_format": 1,
-  "_updated": "2026-05-26T17:51:09.929Z",
+  "_updated": "2026-05-26T17:51:21.261Z",
   "tage": {
     "Montag": {
       "Kaesekuchen": {
@@ -23,6 +23,12 @@
         "ist_menge": 5,
         "verschoben_nach": null,
         "erledigt": true
+      }
+    },
+    "Dienstag": {
+      "Kaese-Rhabarber Schnitte": {
+        "ist_menge": 3,
+        "verschoben_nach": "Montag"
       }
     }
   }
