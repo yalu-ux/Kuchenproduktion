@@ -1,42 +1,12 @@
 {
   "kw": "",
   "_format": 1,
-  "_updated": "2026-05-26T17:51:36.218Z",
+  "_updated": "2026-05-26T18:02:50.059Z",
   "tage": {
     "Montag": {
       "Kaesekuchen": {
         "ist_menge": 2,
-        "verschoben_nach": null,
-        "erledigt": true
-      },
-      "Lauch-Speck Quiche": {
-        "ist_menge": 2,
-        "verschoben_nach": null,
-        "erledigt": true
-      },
-      "_streusel_chargen": {
-        "ist_menge": 2,
-        "verschoben_nach": null,
-        "erledigt": true
-      },
-      "_mt_ansetzen": {
-        "ist_menge": 5,
-        "verschoben_nach": null,
-        "erledigt": true
-      }
-    },
-    "Dienstag": {
-      "Kaese-Rhabarber Schnitte": {
-        "ist_menge": 3,
-        "verschoben_nach": "Montag",
-        "erledigt": true
-      }
-    },
-    "Mittwoch": {
-      "Bienenstich": {
-        "ist_menge": 4,
-        "verschoben_nach": "Montag",
-        "erledigt": true
+        "verschoben_nach": null
       }
     }
   }
