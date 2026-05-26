@@ -1,12 +1,13 @@
 {
   "kw": "",
   "_format": 1,
-  "_updated": "2026-05-26T17:38:08.679Z",
+  "_updated": "2026-05-26T17:38:11.445Z",
   "tage": {
     "Montag": {
       "_mt_ansetzen": {
         "ist_menge": 5,
-        "verschoben_nach": null
+        "verschoben_nach": null,
+        "erledigt": true
       }
     }
   }
