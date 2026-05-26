@@ -1,7 +1,7 @@
 {
   "kw": "",
   "_format": 1,
-  "_updated": "2026-05-26T17:37:25.388Z",
+  "_updated": "2026-05-26T17:37:27.819Z",
   "tage": {
     "Montag": {
       "_mt_ansetzen": {
@@ -11,7 +11,8 @@
       },
       "_streusel_chargen": {
         "ist_menge": 2,
-        "verschoben_nach": null
+        "verschoben_nach": null,
+        "erledigt": true
       }
     }
   }
