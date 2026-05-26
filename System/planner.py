@@ -3474,27 +3474,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-chenuebersicht...")
-    erstelle_html_wochenuebersicht(bedarf, murt, wplan, rolling, tages_info, vtage=vtage)
-    print("Erstelle HTML Tagesplaene...")
-    for tag, aufgaben in wplan.items():
-        # Vergangene Tage NICHT ueberschreiben: Wenn der Planer mitten in der
-        # Woche laeuft (z.B. Di Lager aktualisiert), bleibt Montag.html mit
-        # allen bereits gesetzten Haken und per Zahnrad geaenderten Stueckzahlen
-        # unangetastet. Nachtraegliches Korrigieren via Zahnrad bleibt moeglich,
-        # weil die ist_produktion_KW*.json unabhaengig weiterlaeuft.
-        if vtage and tag not in vtage:
-            print("  {} uebersprungen (vergangener Tag) - bestehende HTML bleibt.".format(tag))
-            continue
-        ist_heut = (tag == vtage[0]) if vtage else False
-        lager_info = tages_info.get(tag, [])
-        erstelle_html(tag, aufgaben, murt, rezepte, sub_rezepte=sub_rezepte,
-                      lager_info=lager_info, ist_heut=ist_heut, preise=preise)
-    print("Aggregiere Single-Page Dashboard...")
-    erstelle_dashboard_html()
-    print("\nFertig! Ordner: {}".format(OUTPUT_PFAD))
-
-
-if __name__ == "__main__":
-    main()
-)
