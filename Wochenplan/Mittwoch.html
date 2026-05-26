@@ -228,7 +228,7 @@ async function loadIst(){
     return;
   }
   try{
-    var r=await fetch(ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json?ref=main',{
+    var r=await fetch(ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json',{
       headers:{Authorization:'Bearer '+cfg('token'),Accept:'application/vnd.github+json'}
     });
     if(r.status===404){
@@ -259,30 +259,38 @@ async function saveIst(){
   _saveDebounce=setTimeout(_doSaveIst,400);
 }
 
+// Holt die aktuelle SHA der ist_produktion-Datei. Bewusst minimalistische
+// Headers (gleich wie loadIst), kein ref=main (nutzt Default-Branch), keine
+// Cache-Buster — Mobile-Browser/Provider reagieren teils auf "If-None-Match"
+// oder unbekannte Headers mit fehlerhaften CORS-Preflights.
+// Returns: SHA-String wenn Datei existiert, null wenn 404, undefined bei Fehler.
 async function _fetchCurrentSha(){
-  // Cache-Buster anhaengen, damit GitHubs CDN nicht eine veraltete Antwort liefert.
-  var url=ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json?ref=main&_='+Date.now();
   try{
-    var r=await fetch(url,{
-      headers:{Authorization:'Bearer '+cfg('token'),
-               Accept:'application/vnd.github+json',
-               'Cache-Control':'no-cache','If-None-Match':''}
+    var r=await fetch(ghBase()+'/contents/Wochenplan/ist_produktion_KW'+KW+'.json',{
+      headers:{Authorization:'Bearer '+cfg('token'),Accept:'application/vnd.github+json'}
     });
     if(r.ok){var j=await r.json();return j.sha;}
     if(r.status===404) return null;
-  }catch(e){}
-  return undefined;  // unbekannt — Aufrufer entscheidet
+  }catch(e){console.warn('_fetchCurrentSha:',e);}
+  return undefined;
 }
 
 async function _doSaveIst(retried){
   if(!ghReady()){showToast('GitHub-Login fehlt','error');return;}
   // Wenn IST._sha vom letzten erfolgreichen PUT vorhanden ist, vertrauen wir
-  // dem — GitHubs Contents-GET kann durch Replication-Lag eine veraltete SHA
-  // liefern und uns so in einen 409/422-Konflikt schicken. Nur initial oder
-  // nach einem fehlgeschlagenen PUT holen wir die SHA frisch.
-  if(IST._sha===undefined || IST._sha===null && !retried){
+  // dem. Sonst holen wir die SHA frisch — und blocken solange, bis wir
+  // entweder eine SHA haben oder sicher wissen, dass die Datei noch nicht
+  // existiert (404). Andernfalls riskieren wir, ohne SHA an eine existierende
+  // Datei zu PUTten -> "sha wasn't supplied".
+  if(!IST._sha){
     var sha=await _fetchCurrentSha();
-    if(sha!==undefined) IST._sha=sha;
+    if(sha===undefined){
+      // GET hat geknallt (Netz/CORS). Statt blind PUT zu senden, kurz
+      // backoff und einmal nachfassen.
+      await new Promise(function(res){setTimeout(res,500);});
+      sha=await _fetchCurrentSha();
+    }
+    if(sha!==undefined) IST._sha=sha;  // string oder null
   }
   var payload={kw:KW,_format:1,_updated:new Date().toISOString(),tage:IST.tage};
   var jsonStr=JSON.stringify(payload,null,2);
@@ -297,12 +305,12 @@ async function _doSaveIst(retried){
     });
     if(!r.ok){
       var er;try{er=await r.json();}catch(_){er={};}
-      // SHA-Konflikt: einmal mit aktueller SHA neu versuchen.
-      if(!retried && (r.status===409 || r.status===422 ||
-                       (er.message && /sha|does not match/i.test(er.message)))){
-        IST._sha=await _fetchCurrentSha();
-        // Kurzer Backoff, damit die Replication aufholen kann.
-        await new Promise(function(res){setTimeout(res,300);});
+      // Retry bei SHA-Konflikten und "wasn't supplied" — alles, was darauf
+      // hinweist, dass die SHA aus irgendeinem Grund nicht stimmt.
+      var shaErr = er.message && /sha|does not match|wasn'?t supplied|not supplied/i.test(er.message);
+      if(!retried && (r.status===409 || r.status===422 || shaErr)){
+        IST._sha=null;  // erzwingt fresh GET im naechsten Lauf
+        await new Promise(function(res){setTimeout(res,500);});
         return _doSaveIst(true);
       }
       throw new Error(er.message||'HTTP '+r.status);
