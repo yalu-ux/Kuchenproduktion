@@ -1,7 +1,7 @@
 {
   "kw": "2026-22",
   "_format": 1,
-  "_updated": "2026-05-26T07:23:52.106983",
+  "_updated": "2026-05-26T07:38:26.631783",
   "tage": {
     "Dienstag": [
       {
@@ -59,6 +59,12 @@
         "menge": 6,
         "aktiv_min": 150,
         "passiv_min": 290
+      },
+      {
+        "produkt_key": "Beeren Tartelette",
+        "menge": 60,
+        "aktiv_min": 100,
+        "passiv_min": 430
       }
     ],
     "Donnerstag": [
@@ -87,10 +93,10 @@
         "passiv_min": 90
       },
       {
-        "produkt_key": "Kaese-Rhabarber Schnitte",
+        "produkt_key": "Donauwelle",
         "menge": 6,
-        "aktiv_min": 90,
-        "passiv_min": 40
+        "aktiv_min": 150,
+        "passiv_min": 290
       },
       {
         "produkt_key": "Kaese-Rhabarber Schnitte",
@@ -129,6 +135,12 @@
         "menge": 6,
         "aktiv_min": 150,
         "passiv_min": 290
+      },
+      {
+        "produkt_key": "Kaese-Rhabarber Schnitte",
+        "menge": 6,
+        "aktiv_min": 90,
+        "passiv_min": 40
       }
     ]
   }
