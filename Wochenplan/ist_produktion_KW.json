@@ -1,13 +1,12 @@
 {
   "kw": "",
   "_format": 1,
-  "_updated": "2026-05-26T18:06:22.847Z",
+  "_updated": "2026-05-27T10:16:58.284Z",
   "tage": {
-    "Montag": {
+    "Mittwoch": {
       "Kaesekuchen": {
         "ist_menge": 2,
-        "verschoben_nach": null,
-        "erledigt": true
+        "verschoben_nach": null
       }
     }
   }
