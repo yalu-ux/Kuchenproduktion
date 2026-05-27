@@ -1,10 +1,14 @@
 {
   "kw": "",
   "_format": 1,
-  "_updated": "2026-05-27T11:44:50.888Z",
+  "_updated": "2026-05-27T12:13:54.682Z",
   "tage": {
     "Mittwoch": {
       "Donauwelle": {
+        "ist_menge": 3,
+        "verschoben_nach": null
+      },
+      "Bienenstich": {
         "ist_menge": 3,
         "verschoben_nach": null
       }
