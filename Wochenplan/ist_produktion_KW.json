@@ -1,13 +1,12 @@
 {
   "kw": "",
   "_format": 1,
-  "_updated": "2026-05-27T10:17:01.167Z",
+  "_updated": "2026-05-27T11:44:50.888Z",
   "tage": {
     "Mittwoch": {
-      "Kaesekuchen": {
-        "ist_menge": 2,
-        "verschoben_nach": null,
-        "erledigt": true
+      "Donauwelle": {
+        "ist_menge": 3,
+        "verschoben_nach": null
       }
     }
   }
