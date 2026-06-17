@@ -1,0 +1,18 @@
+{
+  "Beeren Tartelette": 27,
+  "Mango-Passionsfrucht Tartelette": 27,
+  "Pistazien Toertchen": 32,
+  "Bienenstich": 9,
+  "Donauwelle": 8,
+  "Kaesekuchen": 8,
+  "Kaese-Rhabarber Schnitte": 7,
+  "Lauch-Speck Quiche": 6,
+  "Dattelkuchen": 4,
+  "Muerbeteig_Chargen": 2,
+  "Muerbeteig_Tartelette": 10,
+  "Muerbeteig_Schnitte": 3,
+  "Muerbeteig_Kuchen": 0,
+  "Muerbeteig_Rund": 2,
+  "naechste_tartelette": "Beeren Tartelette",
+  "plan_ab_morgen": true
+}
